@@ -1,0 +1,10 @@
+.app-shell {
+  min-height: 100vh;
+}
+
+/* Content padding on every page: 32px top, 48px bottom; sides scale with the viewport
+   from 16px (phones, ~400px and below) to 48px (1200px and up). No max width. */
+.app-main {
+  min-width: 0;
+  padding: 32px clamp(16px, 4vw, 48px) 48px;
+}

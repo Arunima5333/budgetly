@@ -1,0 +1,51 @@
+<!-- The box is also the Bootstrap .dropdown: the month name opens a month picker pinned under the whole box. -->
+<div class="month-selector dropdown"
+     *ngIf="{ label: (label$ | async), atCurrent: (atCurrentMonth$ | async), atFirst: (atFirstMonth$ | async) } as state">
+  <!-- Can't go before January 2020. -->
+  <button #previousButton type="button" class="month-arrow" aria-label="Previous month" [disabled]="state.atFirst"
+          (click)="previousMonth()">
+    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+  </button>
+
+  <!-- A direct child of the .dropdown box (Bootstrap finds the menu in the toggle's parent), centred with mx-auto.
+       Static display: positioned by CSS under the box (no Popper); clicks inside (year arrows) keep it open. -->
+  <button #toggle type="button" class="month-toggle d-inline-flex align-items-center gap-1 rounded px-2 py-1 mx-auto"
+          data-bs-toggle="dropdown" data-bs-display="static" data-bs-auto-close="outside"
+          aria-haspopup="true" aria-expanded="false" [id]="ids.toggle"
+          [attr.aria-label]="'Choose month, ' + state.label + ' selected'">
+    <span class="month-label">{{ state.label }}</span>
+    <i class="bi bi-chevron-down month-caret" aria-hidden="true"></i>
+  </button>
+
+  <!-- Can't go past the current month. -->
+  <button #nextButton type="button" class="month-arrow" aria-label="Next month" [disabled]="state.atCurrent"
+          (click)="nextMonth()">
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+  </button>
+
+  <!-- Announces month changes (the toggle's accessible name is set by aria-label). -->
+  <span class="visually-hidden" aria-live="polite">{{ state.label }}</span>
+
+  <div #menu class="dropdown-menu month-picker shadow-none p-3" [attr.aria-labelledby]="ids.toggle">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <button #previousYearButton type="button" class="month-arrow" aria-label="Previous year" [disabled]="!canPreviousYear" (click)="shiftYear(-1)">
+        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+      </button>
+      <span class="fw-bold" [id]="ids.year">{{ pickerYear }}</span>
+      <button #nextYearButton type="button" class="month-arrow" aria-label="Next year" [disabled]="!canNextYear" (click)="shiftYear(1)">
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- 3 x 4 month grid; arrow keys move between months (see onWindowKeydown). -->
+    <div class="row row-cols-3 g-2" role="group" [attr.aria-labelledby]="ids.year">
+      <div class="col" *ngFor="let m of pickerMonths; trackBy: trackByMonth">
+        <button type="button" class="btn w-100 py-3 py-md-2 picker-month"
+                [class.btn-primary]="m.selected" [class.fw-semibold]="m.selected || m.current"
+                [class.is-current]="m.current && !m.selected" [disabled]="m.disabled"
+                [attr.aria-pressed]="m.selected" [attr.aria-current]="m.current && !m.selected ? 'date' : null"
+                [attr.aria-label]="m.longName + ' ' + pickerYear" (click)="pickMonth(m)">{{ m.shortName }}</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,46 @@
+/* Fixed, top-centre, only as wide as its content; above modals (1055) and backdrops (1050). */
+.app-alert {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  z-index: 1090;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  margin-bottom: 0;
+  transform: translateX(-50%);
+  animation: app-alert-in 150ms ease-out;
+  transition: opacity 300ms ease;
+}
+
+.app-alert svg {
+  fill: currentColor;
+}
+
+/* Fading out (removed from the DOM after the transition). */
+.app-alert.is-leaving {
+  opacity: 0;
+}
+
+@keyframes app-alert-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Mobile: just below the sticky top bar (~57px) so the menu/theme buttons stay visible. */
+@media (max-width: 991.98px) {
+  .app-alert {
+    top: calc(57px + 0.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-alert {
+    animation: none;
+    transition: none;
+  }
+}

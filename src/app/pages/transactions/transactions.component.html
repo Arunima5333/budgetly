@@ -1,0 +1,192 @@
+<!-- One subscription: the header count and the table share the same filtered result.
+     The streams are BehaviorSubject-based, so this emits synchronously on first render. -->
+<ng-container *ngIf="view$ | async as view">
+<!-- md and up: title | month selector | + Add transaction. Below md: title | square "+", then the selector on its own line.
+     Past months: no add button; "View only" left of the selector from md up, or on its own line below the selector below md. -->
+<header class="d-flex flex-wrap flex-md-nowrap align-items-center gap-3">
+  <div class="min-w-0 me-auto">
+    <h1 class="h3 mb-1">Transactions</h1>
+    <p class="text-body-secondary small mb-0">
+      {{ view.monthLabel }}<span class="meta-dot" aria-hidden="true"></span><span aria-live="polite" [ngPlural]="view.rows.length">
+        <ng-template ngPluralCase="=1">1 transaction</ng-template>
+        <ng-template ngPluralCase="other">{{ view.rows.length }} transactions</ng-template>
+      </span>
+    </p>
+  </div>
+
+  <app-view-only-badge class="header-badge order-last order-md-0" *ngIf="!view.canAdd"></app-view-only-badge>
+
+  <app-month-selector class="header-month order-5 order-md-0"></app-month-selector>
+
+  <!-- Icon-only square below md; full label from md up. Current month with transactions only
+       (an empty current month has the button in its empty-state card instead). -->
+  <button type="button" class="btn btn-primary btn-add btn-add-responsive" aria-label="Add transaction"
+          *ngIf="view.canAdd && view.monthHasTransactions" (click)="addTxn.open()">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+    <span class="d-none d-md-inline">Add transaction</span>
+  </button>
+</header>
+
+<!-- Filters, list and the mobile hint only when the month has transactions; otherwise one empty-state card. -->
+<ng-container *ngIf="view.monthHasTransactions; else monthEmpty">
+<section class="app-card mt-4" aria-label="Filters">
+  <div class="row g-3">
+    <!-- Search -->
+    <div class="col-12 col-md-6">
+      <label class="form-label small fw-semibold text-body-secondary" for="txn-search">Search</label>
+      <div class="search-field">
+        <input #searchInput id="txn-search" type="search" class="form-control filter-control search-input"
+               placeholder="Search description or category" autocomplete="off"
+               [value]="filters.query" (input)="setQuery($event.target.value)">
+        <button type="button" class="search-clear" aria-label="Clear search"
+                *ngIf="filters.query" (click)="clearSearch()">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Type -->
+    <div class="col-6 col-md-3">
+      <label class="form-label small fw-semibold text-body-secondary" for="txn-type">Type</label>
+      <div class="dropdown">
+        <button id="txn-type" type="button" class="filter-control filter-select dropdown-toggle"
+                data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="text-truncate">{{ typeLabel }}</span>
+        </button>
+        <ul class="dropdown-menu filter-menu" aria-labelledby="txn-type">
+          <li *ngFor="let option of typeOptions">
+            <button type="button" class="dropdown-item" [class.active]="option.value === filters.type"
+                    [attr.aria-current]="option.value === filters.type ? 'true' : null"
+                    (click)="setType(option.value)">
+              <span class="d-block fw-semibold">{{ option.label }}</span>
+              <small class="dropdown-item-desc">{{ option.description }}</small>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Sort by -->
+    <div class="col-6 col-md-3">
+      <label class="form-label small fw-semibold text-body-secondary" for="txn-sort">Sort by</label>
+      <div class="dropdown">
+        <button id="txn-sort" type="button" class="filter-control filter-select dropdown-toggle"
+                data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="text-truncate">{{ sortLabel }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end filter-menu" aria-labelledby="txn-sort">
+          <li *ngFor="let option of sortOptions">
+            <button type="button" class="dropdown-item fw-semibold" [class.active]="option.value === filters.sort"
+                    [attr.aria-current]="option.value === filters.sort ? 'true' : null"
+                    (click)="setSort(option.value)">{{ option.label }}</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category pills -->
+  <div class="pill-row mt-3" role="group" aria-label="Filter by category">
+    <button type="button" class="btn btn-sm rounded-pill fw-semibold filter-pill"
+            [ngClass]="!filters.category ? 'btn-primary' : 'filter-pill-idle'"
+            [attr.aria-pressed]="!filters.category" (click)="setCategory(null)">All</button>
+    <button type="button" *ngFor="let name of categoryNames" class="btn btn-sm rounded-pill fw-semibold filter-pill"
+            [ngClass]="filters.category === name ? 'btn-primary' : 'filter-pill-idle'"
+            [attr.aria-pressed]="filters.category === name" (click)="setCategory(name)">{{ name }}</button>
+  </div>
+</section>
+
+<section #resultsCard class="app-card results-card mt-4" aria-label="Transactions" tabindex="-1">
+  <ng-container *ngIf="view.rows.length; else emptyState">
+    <!-- md and up: table -->
+    <div class="d-none d-md-block">
+      <table class="table table-hover align-middle mb-0 txn-table">
+        <caption class="visually-hidden">Transactions for {{ view.monthLabel }}</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="col-date">Date</th>
+            <th scope="col" class="col-description">Description</th>
+            <th scope="col" class="col-category">Category</th>
+            <th scope="col" class="col-amount text-end">Amount</th>
+            <th scope="col" class="col-actions text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of view.rows; trackBy: trackById">
+            <td class="cell-date">{{ row.dateLabel }}</td>
+            <td class="cell-description">
+              <div class="text-truncate" [title]="row.description">{{ row.description }}</div>
+            </td>
+            <td class="cell-category">
+              <span class="category-dot" [style.background-color]="row.color" aria-hidden="true"></span>{{ row.category }}
+            </td>
+            <td class="cell-amount text-end" [class.is-income]="row.isIncome">{{ row.sign }}{{ row.amount | inr }}</td>
+            <td class="cell-actions text-end">
+              <button type="button" class="row-action" [attr.data-edit-id]="row.id" [attr.aria-label]="'Edit ' + row.description"
+                      (click)="editTransaction(row)">
+                <i class="bi bi-pencil" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="row-action" [attr.aria-label]="'Delete ' + row.description"
+                      (click)="deleteTransaction(row)">
+                <i class="bi bi-trash3" aria-hidden="true"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Below md: same rows as the Overview "Recent transactions" card -->
+    <ul class="txn-list txn-mobile-list list-unstyled mb-0 d-md-none">
+      <li *ngFor="let row of view.rows; trackBy: trackById">
+        <!-- The whole row is the edit button on mobile. -->
+        <button type="button" class="txn-row-button d-flex align-items-center gap-3 text-start" [attr.data-edit-id]="row.id"
+                [attr.aria-label]="'Edit ' + row.description" (click)="editTransaction(row)">
+          <span class="txn-badge" [style.background-color]="row.color" aria-hidden="true">{{ row.letter }}</span>
+          <span class="txn-text">
+            <span class="txn-description d-block">{{ row.description }}</span>
+            <span class="txn-meta d-block">{{ row.category }} · {{ row.dateLabel }}</span>
+          </span>
+          <span class="txn-amount" [class.is-income]="row.isIncome">{{ row.sign }}{{ row.amount | inr }}</span>
+        </button>
+      </li>
+    </ul>
+  </ng-container>
+
+  <ng-template #emptyState>
+    <p class="text-body-secondary text-center py-5 mb-0">
+      {{ view.monthHasTransactions ? 'No transactions match these filters' : 'No transactions this month' }}
+    </p>
+  </ng-template>
+</section>
+
+<!-- Mobile only, and only when there are rows to tap (not for the empty states). -->
+<p class="small text-body-secondary text-center mt-3 mb-0 d-md-none" *ngIf="view.rows.length">Tap a transaction to edit or delete it.</p>
+</ng-container>
+
+<ng-template #monthEmpty>
+  <!-- Current month, nothing added yet. -->
+  <app-empty-state *ngIf="view.canAdd" heading="No transactions yet this month" [hasActions]="true" [compactMobile]="true"
+                   text="Add income and expenses as they happen. Your budgets and reports update automatically.">
+    <svg emptyIcon class="icon-accent" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+    <!-- Same as the header "+ Add transaction" (.btn-add). Full width of the content column below sm,
+         natural width and centred from sm up. -->
+    <div emptyActions class="d-grid d-sm-flex justify-content-sm-center">
+      <button type="button" class="btn btn-primary btn-add" (click)="addTxn.open()">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        <span>Add transaction</span>
+      </button>
+    </div>
+  </app-empty-state>
+
+  <!-- Past month with no transactions (view only). -->
+  <app-empty-state *ngIf="!view.canAdd" [heading]="'No transactions in ' + view.monthLabel"
+                   text="Nothing was logged this month. Use the arrows above to view another month.">
+    <svg emptyIcon class="text-body-secondary" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+  </app-empty-state>
+</ng-template>
+</ng-container>
+
+<app-add-transaction-modal #addTxn (deleteRequested)="deleteModal.open($event)"></app-add-transaction-modal>
+<app-delete-transaction-modal #deleteModal (deleted)="onTransactionDeleted()"
+                              (cancelled)="onDeleteCancelled($event)"></app-delete-transaction-modal>

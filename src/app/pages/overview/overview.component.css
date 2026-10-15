@@ -1,0 +1,155 @@
+/* Summary cards; .category-card and .recent-card share the same card surface. */
+.summary-card,
+.category-card,
+.recent-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem;
+  border: var(--bs-border-width) solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--app-surface);
+}
+
+.summary-label,
+.summary-caption {
+  color: var(--bs-secondary-color);
+  font-size: 0.875rem;
+}
+
+.summary-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+/* Accent text: #4338CA in light mode, the lighter tint in dark mode (see styles.css). */
+.summary-value-left {
+  margin-bottom: 0.5rem;
+  color: var(--bs-link-color);
+}
+
+/* Pushed to the bottom so it lines up with the captions in the other cards. */
+.budget-bar {
+  height: 6px;
+  margin-top: auto;
+}
+
+.budget-bar .progress-bar {
+  background-color: var(--bs-primary);
+}
+
+/* Over budget: warning colours readable in both themes. */
+.is-over .summary-value-left {
+  color: var(--bs-danger-text-emphasis);
+}
+
+.is-over .budget-bar .progress-bar {
+  background-color: var(--bs-danger);
+}
+
+/* Budget by category */
+.edit-link {
+  color: var(--bs-link-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.edit-link:hover {
+  text-decoration: underline;
+}
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.category-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.category-name {
+  font-weight: 600;
+}
+
+.category-amount {
+  color: var(--bs-secondary-color);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.category-bar {
+  height: 6px;
+  margin-top: 0.5rem;
+}
+
+/* md and up: more breathing room between rows and above each bar (mobile keeps the values above). */
+@media (min-width: 768px) {
+  .category-list {
+    gap: 1.5rem;
+  }
+
+  .category-bar {
+    margin-top: 0.75rem;
+  }
+}
+
+/* Recent transactions */
+.recent-list li {
+  padding: 0.75rem 0;
+}
+
+.recent-list li:first-child {
+  padding-top: 0.25rem;
+}
+
+.recent-list li:last-child {
+  padding-bottom: 0;
+}
+
+.txn-empty {
+  color: var(--bs-secondary-color);
+  font-size: 0.875rem;
+}
+
+/* Mobile: divider under both card headers; category rows get dividers and the amount moves below the bar.
+   Kept last so it overrides the base .recent-list padding. */
+@media (max-width: 767.98px) {
+  .category-card-header,
+  .recent-card-header {
+    padding-bottom: 0.75rem;
+    border-bottom: var(--bs-border-width) solid var(--bs-border-color);
+  }
+
+  .category-list {
+    gap: 0;
+  }
+
+  .category-list li {
+    padding: 0.75rem 0;
+  }
+
+  /* The card's 0.25rem gap plus this matches the header's bottom padding. */
+  .category-list li:first-child,
+  .recent-list li:first-child {
+    padding-top: 0.5rem;
+  }
+
+  .category-list li:last-child {
+    padding-bottom: 0;
+  }
+
+  .category-list li + li {
+    border-top: var(--bs-border-width) solid var(--bs-border-color);
+  }
+
+  .category-amount-below {
+    margin-top: 0.375rem;
+  }
+}

@@ -1,0 +1,5 @@
+/* Shape, surface and scoped error red come from the shared .app-modal class (styles.css).
+   Same 520px width as the add modal. */
+.delete-txn-modal {
+  --bs-modal-width: 520px;
+}

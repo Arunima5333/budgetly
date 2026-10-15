@@ -1,0 +1,158 @@
+<ng-container *ngIf="state$ | async as state">
+<!-- Past months: "View only" left of the selector (md+) or on its own line below it (below md), no add button.
+     Current month with no transactions yet: no header button (the "Fresh start" card has one). -->
+<header class="overview-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+  <div>
+    <h1 class="h3 mb-1">Overview</h1>
+    <p class="text-body-secondary small mb-0">
+      <ng-container *ngIf="!state.isCurrent">Here's how your money did in {{ state.monthYear }}.</ng-container>
+      <ng-container *ngIf="state.isCurrent && state.hasTransactions">Here's how your money is doing this month.</ng-container>
+      <ng-container *ngIf="state.isCurrent && !state.hasTransactions">A new month has started.</ng-container>
+    </p>
+  </div>
+
+  <div class="header-actions d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 gap-md-3">
+    <app-view-only-badge class="order-1 order-md-0 align-self-start align-self-md-auto" *ngIf="!state.isCurrent"></app-view-only-badge>
+    <app-month-selector></app-month-selector>
+
+    <button type="button" class="btn btn-primary btn-add" *ngIf="state.isCurrent && state.hasTransactions" (click)="addTxn.open()">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>
+      <span>Add transaction</span>
+    </button>
+  </div>
+</header>
+
+<!-- Normal layout when the month has transactions; otherwise one centred empty-state card. -->
+<ng-container *ngIf="state.hasTransactions; else emptyMonth">
+  <section class="summary-cards row g-3 mt-4" *ngIf="summary$ | async as summary" aria-label="Monthly summary">
+    <div class="col-6 col-md-4">
+      <div class="summary-card h-100">
+        <div class="summary-label">Income</div>
+        <div class="summary-value">{{ summary.income | inr }}</div>
+        <div class="summary-caption d-none d-md-block" [ngPlural]="summary.incomeCount">
+          <ng-template ngPluralCase="=0">No payments this month</ng-template>
+          <ng-template ngPluralCase="=1">1 payment this month</ng-template>
+          <ng-template ngPluralCase="other">{{ summary.incomeCount }} payments this month</ng-template>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+      <div class="summary-card h-100">
+        <div class="summary-label">Spent</div>
+        <div class="summary-value">{{ summary.spent | inr }}</div>
+        <div class="summary-caption d-none d-md-block">of {{ summary.totalBudget | inr }} total budget</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="summary-card h-100" [class.is-over]="summary.isOverBudget">
+        <div class="d-flex flex-wrap align-items-baseline justify-content-between column-gap-2">
+          <div class="summary-label">Left to spend</div>
+          <!-- Mobile only: replaces the hidden Spent caption. -->
+          <span class="summary-caption d-md-none">of {{ summary.totalBudget | inr }}</span>
+        </div>
+        <div class="summary-value summary-value-left">
+          <ng-container *ngIf="!summary.isOverBudget">{{ summary.left | inr }}</ng-container>
+          <ng-container *ngIf="summary.isOverBudget">Over by {{ summary.overBy | inr }}</ng-container>
+        </div>
+        <div class="progress budget-bar" role="progressbar"
+             [attr.aria-label]="'Spent ' + summary.spentPercent + '% of total budget'"
+             [attr.aria-valuenow]="summary.barPercent" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar" [style.width.%]="summary.barPercent"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row g-3 mt-4 align-items-lg-start">
+    <div class="col-12 col-lg-6">
+      <div class="category-card" *ngIf="categoryBudgets$ | async as budgets">
+        <div class="category-card-header d-flex align-items-center justify-content-between gap-2 mb-0 mb-md-3">
+          <h2 class="h5 mb-0">Budget by category</h2>
+          <a class="edit-link" routerLink="/budgets">Edit budgets</a>
+        </div>
+
+        <ul class="category-list list-unstyled mb-0">
+          <li *ngFor="let budget of budgets">
+            <div class="d-flex flex-wrap align-items-center justify-content-between column-gap-3 row-gap-1">
+              <div class="d-flex align-items-center gap-2">
+                <span class="category-dot" [style.background-color]="budget.color" aria-hidden="true"></span>
+                <span class="category-name">{{ budget.name }}</span>
+              </div>
+              <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 ms-auto">
+                <span class="category-amount d-none d-md-inline">{{ budget.spent | inr }} of {{ budget.limit | inr }}</span>
+                <span class="status-badge" [ngClass]="'status-' + budget.status" [ngSwitch]="budget.status">
+                  <ng-container *ngSwitchCase="'on-track'">On track</ng-container>
+                  <ng-container *ngSwitchCase="'close'">Close to limit</ng-container>
+                  <ng-container *ngSwitchCase="'at-limit'">At limit</ng-container>
+                  <ng-container *ngSwitchCase="'over'">Over by {{ budget.overBy | inr }}</ng-container>
+                </span>
+              </div>
+            </div>
+            <div class="progress category-bar" role="progressbar"
+                 [attr.aria-label]="budget.name + ': ' + budget.percentUsed + '% of budget used'"
+                 [attr.aria-valuenow]="budget.barPercent" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar" [ngClass]="'bar-' + budget.status" [style.width.%]="budget.barPercent"></div>
+            </div>
+            <!-- Mobile only: the amount moves below the bar. -->
+            <div class="category-amount category-amount-below d-md-none">{{ budget.spent | inr }} of {{ budget.limit | inr }}</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="recent-card" *ngIf="recentTransactions$ | async as recent">
+        <div class="recent-card-header d-flex align-items-center justify-content-between gap-2 mb-0 mb-md-2">
+          <h2 class="h5 mb-0">Recent transactions</h2>
+          <a class="edit-link" routerLink="/transactions">View all</a>
+        </div>
+
+        <ul class="recent-list txn-list list-unstyled mb-0" *ngIf="recent.length; else noTransactions">
+          <li class="d-flex align-items-center gap-3" *ngFor="let t of recent">
+            <span class="txn-badge" [style.background-color]="t.color" aria-hidden="true">{{ t.letter }}</span>
+            <div class="txn-text">
+              <div class="txn-description">{{ t.description }}</div>
+              <div class="txn-meta">{{ t.category }} · {{ t.dateLabel }}</div>
+            </div>
+            <span class="txn-amount" [class.is-income]="t.isIncome">{{ t.sign }}{{ t.amount | inr }}</span>
+          </li>
+        </ul>
+
+        <ng-template #noTransactions>
+          <p class="txn-empty mb-0">No transactions this month</p>
+        </ng-template>
+      </div>
+    </div>
+  </section>
+</ng-container>
+
+<ng-template #emptyMonth>
+  <!-- Past month with nothing recorded. -->
+  <app-empty-state *ngIf="!state.isCurrent" [heading]="'Nothing was recorded in ' + state.monthYear"
+                   text="There are no income or expenses recorded for this month. Use the arrows above to view another month.">
+    <svg emptyIcon class="text-body-secondary" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+  </app-empty-state>
+
+  <!-- Current month with no transactions yet ("Fresh start"). -->
+  <app-empty-state *ngIf="state.isCurrent" [heading]="'Fresh start for ' + state.monthName" [hasActions]="true"
+                   [compactMobile]="true">
+    <svg emptyIcon class="icon-accent" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg>
+    <span emptyText>You have <strong class="fw-bold">{{ state.totalBudget | inr }}</strong> to spend across
+      <ng-container [ngPlural]="state.categoryCount"><ng-template ngPluralCase="=1">1 category</ng-template><ng-template ngPluralCase="other">{{ state.categoryCount }} categories</ng-template></ng-container>.
+      Your limits carried over from {{ state.previousMonthName }}.</span>
+    <!-- Same size and look as the header "+ Add transaction" (.btn-add). Stacked full width below sm (Add on top),
+         side by side and centred from sm up. -->
+    <div emptyActions class="d-grid d-sm-flex justify-content-sm-center gap-2">
+      <button type="button" class="btn btn-primary btn-add" (click)="addTxn.open()">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        <span>Add transaction</span>
+      </button>
+      <a class="btn btn-outline-neutral btn-add" routerLink="/budgets">Review budgets</a>
+    </div>
+  </app-empty-state>
+</ng-template>
+</ng-container>
+
+<app-add-transaction-modal #addTxn></app-add-transaction-modal>

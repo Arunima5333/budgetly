@@ -1,0 +1,52 @@
+<!-- Top bar, mobile only -->
+<header class="topbar d-flex d-lg-none align-items-center px-3 py-2 border-bottom sticky-top">
+  <button class="btn btn-outline-secondary btn-sm" type="button"
+          data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
+          aria-controls="sidebarMenu" aria-label="Open menu">
+    <i class="bi bi-list fs-5" aria-hidden="true"></i>
+  </button>
+  <a class="brand" routerLink="/overview">
+    <span class="brand-mark" aria-hidden="true">B</span>
+    <span>Budgetly</span>
+  </a>
+  <button class="theme-toggle" type="button" (click)="toggleTheme()"
+          [attr.aria-label]="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+    <i class="bi" [ngClass]="isDark ? 'bi-sun' : 'bi-moon'" aria-hidden="true"></i>
+  </button>
+</header>
+
+<!-- Sidebar: offcanvas below lg, static column from lg up -->
+<aside #sidebarMenu id="sidebarMenu" class="sidebar offcanvas-lg offcanvas-start border-end"
+       tabindex="-1" aria-labelledby="sidebarMenuLabel">
+  <div class="offcanvas-header">
+    <a class="brand" id="sidebarMenuLabel" routerLink="/overview" (click)="closeMenu()">
+      <span class="brand-mark" aria-hidden="true">B</span>
+      <span>Budgetly</span>
+    </a>
+    <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas"
+            data-bs-target="#sidebarMenu" aria-label="Close menu"></button>
+  </div>
+
+  <div class="offcanvas-body sidebar-body">
+    <nav aria-label="Main navigation">
+      <ul class="nav flex-column gap-1">
+        <li class="nav-item" *ngFor="let link of links">
+          <a class="nav-link sidebar-link" [routerLink]="link.path" routerLinkActive="active"
+             (click)="closeMenu()">
+            <i class="bi" [ngClass]="link.icon" aria-hidden="true"></i>
+            <span>{{ link.label }}</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="mt-auto pt-3 border-top">
+      <div class="form-check form-switch mb-0 d-flex align-items-center gap-2 ps-0">
+        <i class="bi" [ngClass]="isDark ? 'bi-moon-stars' : 'bi-sun'" aria-hidden="true"></i>
+        <label class="form-check-label flex-grow-1" for="themeSwitch">Dark mode</label>
+        <input class="form-check-input ms-0" type="checkbox" role="switch" id="themeSwitch"
+               [checked]="isDark" (change)="toggleTheme()">
+      </div>
+    </div>
+  </div>
+</aside>

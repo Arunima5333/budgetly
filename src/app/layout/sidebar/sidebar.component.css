@@ -1,0 +1,127 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--bs-body-color);
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background-color: #4338ca;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Mobile top bar: [menu] [brand] ........ [theme toggle]. */
+.topbar {
+  gap: 12px;
+  background-color: var(--app-surface);
+}
+
+.theme-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bs-border-radius);
+  background: transparent;
+  color: var(--bs-body-color);
+  font-size: 1.25rem;
+}
+
+.theme-toggle:focus {
+  outline: none;
+}
+
+.theme-toggle:focus-visible {
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+/* Mobile offcanvas panel uses the raised surface instead of the page background. */
+.sidebar {
+  --bs-offcanvas-bg: var(--app-surface);
+}
+
+.sidebar-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--bs-border-radius);
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+}
+
+.sidebar-link:hover,
+.sidebar-link:focus-visible {
+  color: var(--bs-body-color);
+  background-color: var(--bs-tertiary-bg);
+}
+
+.sidebar-link.active {
+  color: var(--bs-primary-text-emphasis);
+  background-color: var(--bs-primary-bg-subtle);
+  font-weight: 600;
+}
+
+.form-switch .form-check-input {
+  float: none;
+}
+
+/* Desktop: fixed-width column that stays in view while the page scrolls. */
+@media (min-width: 992px) {
+  /* Bootstrap forces .offcanvas-lg transparent at lg, so the host paints the surface. */
+  :host {
+    flex: 0 0 260px;
+    width: 260px;
+    background-color: var(--app-surface);
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem 1rem;
+  }
+
+  /* Bootstrap hides the offcanvas header and zeroes body layout at lg; restore them. */
+  .sidebar .offcanvas-header {
+    display: flex;
+    padding: 0 0.75rem 1.5rem;
+  }
+
+  .sidebar .offcanvas-body.sidebar-body {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow-y: auto;
+  }
+}
+
+/* Mobile offcanvas: keep it a comfortable width. */
+@media (max-width: 991.98px) {
+  .sidebar {
+    --bs-offcanvas-width: 280px;
+  }
+}

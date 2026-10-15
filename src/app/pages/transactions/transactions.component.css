@@ -1,0 +1,324 @@
+.min-w-0 {
+  min-width: 0;
+}
+
+/* Header button never shrinks; below md it becomes a 42x42 icon-only square. */
+.btn-add-responsive {
+  flex-shrink: 0;
+}
+
+@media (max-width: 767.98px) {
+  .btn-add-responsive {
+    width: 42px;
+    padding: 0;
+    font-size: 1.25rem;
+  }
+}
+
+/* Search: clear button on the right, inside the field. */
+.search-field {
+  position: relative;
+}
+
+/* Left padding matches the dropdown triggers; right leaves room for the clear button. */
+.search-input {
+  padding-left: 0.875rem;
+  padding-right: 2.75rem;
+}
+
+/* Hide the browser's own clear button so there is only one ×. */
+.search-input::-webkit-search-cancel-button,
+.search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  transform: translateY(-50%);
+}
+
+.search-clear:hover {
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+}
+
+.search-clear:focus {
+  outline: 0;
+}
+
+.search-clear:focus-visible {
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+/* Category pills: wrap on wider screens, one sideways-scrolling row on mobile. */
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-pill {
+  flex-shrink: 0;
+  padding: 0.35rem 0.9rem;
+}
+
+.filter-pill-idle {
+  --bs-btn-color: var(--bs-secondary-color);
+  --bs-btn-border-color: var(--bs-border-color);
+  --bs-btn-hover-color: var(--bs-body-color);
+  --bs-btn-hover-bg: var(--bs-tertiary-bg);
+  --bs-btn-hover-border-color: var(--bs-border-color);
+  --bs-btn-active-color: var(--bs-body-color);
+  --bs-btn-active-bg: var(--bs-tertiary-bg);
+  --bs-btn-active-border-color: var(--bs-border-color);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+@media (max-width: 767.98px) {
+  .pill-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Room for focus rings and an 8px gap above the scrollbar, pulled back to keep alignment. */
+    padding: 4px 4px 8px;
+    margin: -4px -4px -8px;
+  }
+
+  /*
+   * Visible thin scrollbar hints that more pills are off-screen.
+   * Firefox: standard properties, limited to Firefox (-moz-appearance) because Chrome 121+
+   * ignores the ::-webkit-scrollbar rules below once scrollbar-width/color are set.
+   */
+  @supports (-moz-appearance: none) {
+    .pill-row {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(var(--bs-emphasis-color-rgb), 0.25) transparent;
+    }
+  }
+
+  /* WebKit/Blink: 4px track, rounded muted thumb. */
+  .pill-row::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .pill-row::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .pill-row::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: rgba(var(--bs-emphasis-color-rgb), 0.25);
+  }
+}
+
+/* Results card: no horizontal padding, so row hover tints span the card; the first/last
+   cells (and the mobile list) provide the same 1.25rem inset as .app-card. */
+.results-card {
+  padding: 0.5rem 0;
+}
+
+/* Table: transparent over the card surface, lines between rows only. */
+.txn-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--bs-body-color);
+  --bs-table-hover-color: var(--bs-body-color);
+  --bs-table-hover-bg: rgba(var(--bs-emphasis-color-rgb), 0.035);
+  --bs-table-border-color: var(--bs-border-color);
+}
+
+.txn-table th,
+.txn-table td {
+  padding: 0.75rem;
+}
+
+.txn-table th:first-child,
+.txn-table td:first-child {
+  padding-left: 1.25rem;
+}
+
+.txn-table th:last-child,
+.txn-table td:last-child {
+  padding-right: 1.25rem;
+}
+
+.txn-table th {
+  color: var(--bs-secondary-color);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.txn-table tbody tr:last-child > td {
+  border-bottom-width: 0;
+}
+
+.cell-date {
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+}
+
+.cell-description {
+  font-weight: 600;
+}
+
+/* Long descriptions truncate at this width instead of widening the table. */
+.cell-description .text-truncate {
+  max-width: 15rem;
+}
+
+/* Narrow desktop (992-1199px, sidebar visible) leaves the least table width: tighter cap. */
+@media (max-width: 1199.98px) {
+  .cell-description .text-truncate {
+    max-width: 12rem;
+  }
+}
+
+.cell-category {
+  white-space: nowrap;
+}
+
+.category-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background-color: var(--bs-secondary-color);
+  vertical-align: middle;
+}
+
+.cell-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cell-amount.is-income {
+  color: var(--amount-income);
+}
+
+.cell-actions {
+  white-space: nowrap;
+}
+
+/*
+ * Even gaps between columns: every column is sized to its content (tiny % widths), and Chrome
+ * hands the table's spare width to percentage columns in proportion to their percentages.
+ * Each gap gets one share: Category and Amount get half a share each because they share one gap
+ * (Amount is right-aligned, so its spare room sits on its left).
+ */
+.col-date,
+.col-description,
+.col-actions {
+  width: 1%;
+}
+
+.col-category,
+.col-amount {
+  width: 0.5%;
+}
+
+/* Icon-only row actions: muted, 32px hit area, tertiary hover, accent focus ring. */
+.row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bs-border-radius);
+  background: transparent;
+  color: var(--bs-secondary-color);
+}
+
+.row-action:hover {
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+}
+
+.row-action:focus {
+  outline: 0;
+}
+
+.row-action:focus-visible {
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+/* Mobile list: shared .txn-* row styles (styles.css); description semi-bold here. */
+.txn-mobile-list {
+  padding: 0 1.25rem;
+}
+
+/* Row spacing is split between the li (0.25rem) and the button (0.5rem) so it still totals 0.75rem. */
+.txn-mobile-list li {
+  padding: 0.25rem 0;
+}
+
+/* Full-row edit button: reset to look like plain row content. It extends 0.5rem past the
+   text on each side so the hover tint and inset focus ring have room inside the card. */
+.txn-row-button {
+  width: calc(100% + 1rem);
+  margin: 0 -0.5rem;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: var(--bs-border-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.txn-row-button:hover,
+.txn-row-button:active {
+  background-color: rgba(var(--bs-emphasis-color-rgb), 0.035);
+}
+
+.txn-row-button:focus {
+  outline: 0;
+}
+
+.txn-row-button:focus-visible {
+  box-shadow: inset 0 0 0 0.2rem var(--bs-focus-ring-color);
+}
+
+.txn-mobile-list .txn-description {
+  font-weight: 600;
+}
+
+/* Month selector: its own full-width line below md; between the title and the button from md up. */
+.header-month {
+  flex: 0 0 100%;
+}
+
+@media (min-width: 768px) {
+  .header-month {
+    flex: 0 0 auto;
+  }
+}
+
+/* "View only" (past months): own line below the selector below md, 8px under it (header gap is 16px). */
+.header-badge {
+  flex: 0 0 100%;
+  margin-top: -8px;
+}
+
+@media (min-width: 768px) {
+  .header-badge {
+    flex: 0 0 auto;
+    margin-top: 0;
+  }
+}

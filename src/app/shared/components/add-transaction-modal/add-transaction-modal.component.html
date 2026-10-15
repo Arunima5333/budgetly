@@ -1,0 +1,96 @@
+<div #modalEl class="modal fade app-modal add-txn-modal" [class.is-edit]="mode === 'edit'" tabindex="-1" [attr.aria-labelledby]="ids.title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content p-4 border" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <!-- Header row (kept in both views) -->
+      <div class="d-flex justify-content-between align-items-center">
+        <h2 class="h4 fw-bold mb-0" [id]="ids.title">{{ mode === 'edit' ? 'Edit transaction' : 'Add transaction' }}</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Dividers separate header, content and footer (shared .modal-divider, same spacing as the delete dialogs). -->
+      <div class="modal-divider my-4" aria-hidden="true"></div>
+
+      <ng-container>
+        <!-- Type -->
+        <div class="d-flex w-100 p-1 gap-1 rounded-3 bg-body-secondary mb-4" role="group" aria-label="Transaction type">
+          <button type="button" class="btn flex-fill fw-semibold"
+                  [ngClass]="type === 'expense' ? 'bg-body shadow-sm text-body' : 'text-body-secondary'"
+                  [attr.aria-pressed]="type === 'expense'" (click)="setType('expense')">Expense</button>
+          <button type="button" class="btn flex-fill fw-semibold"
+                  [ngClass]="type === 'income' ? 'bg-body shadow-sm text-body' : 'text-body-secondary'"
+                  [attr.aria-pressed]="type === 'income'" (click)="setType('income')">Income</button>
+        </div>
+
+        <!-- Amount -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold" [for]="ids.amount">Amount</label>
+          <div class="input-group input-group-lg has-validation">
+            <span class="input-group-text text-body-secondary">₹</span>
+            <input #amountInput type="number" class="form-control fs-3 fw-bold" placeholder="0"
+                   inputmode="decimal" step="0.01" min="0" formControlName="amount" [id]="ids.amount"
+                   [class.is-invalid]="amountInvalid" [attr.aria-invalid]="amountInvalid"
+                   [attr.aria-describedby]="amountInvalid ? ids.amountError : null">
+            <div class="invalid-feedback fw-semibold" [id]="ids.amountError">Enter an amount greater than 0.</div>
+          </div>
+        </div>
+
+        <!-- Category -->
+        <div class="mb-3">
+          <div class="form-label fw-semibold" [id]="ids.categoryLabel">Category</div>
+          <div class="d-flex flex-wrap gap-2" role="group" [attr.aria-labelledby]="ids.categoryLabel"
+               [attr.aria-describedby]="categoryInvalid ? ids.categoryError : null">
+            <button type="button" *ngFor="let category of categories"
+                    class="btn rounded-pill d-inline-flex align-items-center gap-2 fw-semibold"
+                    [ngClass]="selectedCategory === category.name ? 'btn-primary' : 'btn-outline-secondary text-body'"
+                    [class.border-danger]="categoryInvalid"
+                    [attr.aria-pressed]="selectedCategory === category.name"
+                    (click)="selectCategory(category.name)">
+              <!-- White when selected (CSS default); category colour otherwise. -->
+              <span class="category-dot" aria-hidden="true"
+                    [style.background-color]="selectedCategory === category.name ? null : category.color"></span>
+              {{ category.name }}
+            </button>
+          </div>
+          <div class="small text-danger fw-semibold mt-1" [id]="ids.categoryError" *ngIf="categoryInvalid">Pick a category.</div>
+        </div>
+
+        <!-- Date -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold" [for]="ids.date">Date</label>
+          <input type="date" class="form-control form-control-lg" formControlName="date" [id]="ids.date"
+                 [attr.min]="dateMin" [attr.max]="dateMax"
+                 [class.is-invalid]="dateInvalid" [attr.aria-invalid]="dateInvalid"
+                 [attr.aria-describedby]="dateInvalid ? ids.dateError : null">
+          <div class="invalid-feedback fw-semibold" [id]="ids.dateError">{{ dateErrorText }}</div>
+        </div>
+
+        <!-- Note -->
+        <div>
+          <label class="form-label fw-semibold" [for]="ids.note">Note <span class="text-body-secondary fw-normal">(optional)</span></label>
+          <textarea class="form-control" rows="2" placeholder="Dinner with friends" formControlName="note" [id]="ids.note"></textarea>
+        </div>
+
+        <div class="modal-divider mt-4" aria-hidden="true"></div>
+
+        <!-- Add mode footer: stacked full width below sm (Save, Cancel); from sm up right-aligned Cancel + Save. -->
+        <div class="d-flex flex-column flex-sm-row justify-content-sm-end gap-2 mt-4" *ngIf="mode === 'add'">
+          <button type="submit" class="btn btn-primary btn-lg order-1 order-sm-2">Save transaction</button>
+          <button type="button" class="btn btn-outline-secondary btn-lg order-2 order-sm-1" data-bs-dismiss="modal">Cancel</button>
+        </div>
+
+        <!-- Edit mode footer: DOM order Save, Cancel, Delete (phone stack order).
+             From sm up the order utilities place Delete left and Cancel + Save right. -->
+        <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 mt-4"
+             *ngIf="mode === 'edit'">
+          <button type="submit" class="btn btn-primary btn-lg order-1 order-sm-3">Save changes</button>
+          <button type="button" class="btn btn-outline-secondary btn-lg order-2 order-sm-2 ms-sm-auto"
+                  data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-link text-danger text-decoration-none fw-semibold delete-link order-3 order-sm-1"
+                  (click)="deleteTransaction()">
+            <i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete transaction
+          </button>
+        </div>
+      </ng-container>
+    </form>
+  </div>
+</div>

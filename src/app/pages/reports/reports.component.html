@@ -1,0 +1,144 @@
+<!-- Title top-aligned like the other pages; selector + Compare bottom-aligned with each other.
+     Below md: title, then the selector full width (Compare moves into the "Monthly spending" card).
+     Past months: "View only" left of the selector, centred with it (md+), or on its own line below it (below md).
+     Current month with no transactions: no Compare (and no charts). -->
+<header class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+  <div class="min-w-0">
+    <h1 class="h3 mb-1">Reports</h1>
+    <p class="text-body-secondary small mb-0">Where your money went in {{ monthLabel }}</p>
+  </div>
+
+  <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-end gap-2 gap-md-3">
+    <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 gap-md-3">
+      <app-view-only-badge class="order-1 order-md-0 align-self-start align-self-md-auto" *ngIf="isPastMonth"></app-view-only-badge>
+      <app-month-selector></app-month-selector>
+    </div>
+
+    <div class="compare-field d-none d-md-block" *ngIf="!isCurrentEmpty">
+      <label class="form-label small fw-semibold text-body-secondary" for="reports-compare">Compare</label>
+      <div class="dropdown">
+        <button id="reports-compare" type="button" class="filter-control filter-select dropdown-toggle"
+                data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="text-truncate">{{ compareLabel }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end filter-menu" aria-labelledby="reports-compare">
+          <ng-container *ngTemplateOutlet="compareItems"></ng-container>
+        </ul>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Normal: both charts + Insights. Past month with no transactions: only Monthly spending (full width) and the
+     empty card below. Current month with no transactions: only the empty card. -->
+<section class="row g-3 mt-4 align-items-start" *ngIf="!isCurrentEmpty">
+  <div class="col-12 col-lg-6" *ngIf="hasTransactions">
+    <div class="app-card">
+      <h2 class="h5 mb-3">Spending by category</h2>
+
+      <!-- Always stacked: chart on top (centred on mobile, left-aligned from md), list full width below. -->
+      <div class="spending-body d-flex flex-column align-items-center align-items-md-start"
+           [class.d-none]="!slices.length">
+        <!-- One chart instance while this card is shown (created/destroyed with the canvas). -->
+        <div class="chart-box" [style.width.px]="doughnutSize" [style.height.px]="doughnutSize">
+          <canvas #spendingCanvas role="img" [attr.aria-label]="chartAriaLabel"></canvas>
+          <div class="chart-center" aria-hidden="true">
+            <div class="small text-body-secondary">Total spent</div>
+            <div class="fs-5 fw-bold">{{ totalSpent | inr }}</div>
+          </div>
+        </div>
+
+        <ul class="spend-list list-unstyled mb-0 w-100">
+          <li class="d-flex align-items-center gap-2" *ngFor="let slice of slices; trackBy: trackByName">
+            <span class="category-dot" [style.background-color]="slice.color" aria-hidden="true"></span>
+            <span class="spend-name text-truncate">{{ slice.name }}</span>
+            <span class="text-body-secondary small spend-percent">{{ slice.percentLabel }}</span>
+            <span class="spend-amount">{{ slice.spent | inr }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <p class="text-body-secondary text-center py-5 mb-0" *ngIf="!slices.length">No spending this month.</p>
+    </div>
+  </div>
+
+  <div class="col-12" [class.col-lg-6]="hasTransactions">
+    <div class="app-card">
+      <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+        <h2 class="h5 mb-0 monthly-title">Monthly spending</h2>
+        <!-- Mobile only: same state as the header Compare (which is hidden below md). -->
+        <div class="dropdown d-md-none">
+          <button id="reports-compare-mobile" type="button" class="filter-control filter-select compare-inline dropdown-toggle"
+                  data-bs-toggle="dropdown" aria-expanded="false" aria-label="Compare range">
+            <span class="text-truncate">{{ compareShortLabel }}</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end filter-menu" aria-labelledby="reports-compare-mobile">
+            <ng-container *ngTemplateOutlet="compareItems"></ng-container>
+          </ul>
+        </div>
+      </div>
+      <p class="text-body-secondary small mb-3">
+        <ng-container *ngIf="isPastEmpty">{{ rangeNoDataText }}</ng-container>
+        <ng-container *ngIf="!isPastEmpty && monthlyAverage !== null">Average {{ monthlyAverage | inr }} a month</ng-container>
+        <ng-container *ngIf="!isPastEmpty && monthlyAverage === null">No spending in this period</ng-container>
+      </p>
+
+      <!-- Bars, amounts above, months below (selected month = last bar, accent + bold label). -->
+      <div class="bar-box">
+        <canvas #monthlyCanvas role="img" [attr.aria-label]="monthlyAriaLabel"></canvas>
+      </div>
+
+      <table class="visually-hidden">
+        <caption>Monthly spending, last {{ monthBars.length }} months</caption>
+        <thead><tr><th scope="col">Month</th><th scope="col">Spent</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let bar of monthBars">
+            <th scope="row">{{ bar.longName }}{{ bar.selected ? ' (selected)' : '' }}</th>
+            <td>{{ bar.hasData ? (bar.total | inr) : 'No data' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Insights: one card with gray tiles from md up; below md the wrapper loses its card look
+       and each insight is its own card. -->
+  <div class="col-12" *ngIf="hasTransactions">
+    <section class="app-card insights-panel" aria-labelledby="insights-title">
+      <h2 class="h5 mb-3" id="insights-title">Insights</h2>
+      <div class="row g-3">
+        <div class="col-12 col-md-4" *ngFor="let insight of insights">
+          <div class="insight-tile h-100">
+            <span class="status-badge insight-badge" [ngClass]="'tone-' + insight.tone">{{ insight.badge }}</span>
+            <p class="mt-2 mb-0">{{ insight.text }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- Past month with no transactions: the standard past-month card under the chart. -->
+<app-empty-state *ngIf="isPastEmpty" [heading]="'No spending recorded in ' + monthLabel"
+                 text="The category breakdown and insights only appear for months with transactions. Use the arrows above to view another month.">
+  <svg emptyIcon class="text-body-secondary" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+</app-empty-state>
+
+<!-- Current month with no transactions yet: only this card (same spacing as the other new-month cards). -->
+<app-empty-state *ngIf="isCurrentEmpty" [heading]="'No report for ' + monthName + ' yet'" [hasActions]="true" [compactMobile]="true"
+                 text="Reports fill in as you add transactions. Last month's report is still available.">
+  <svg emptyIcon class="icon-accent" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+  <!-- Same as "Review budgets" on the Overview new-month card: full width below sm, centred from sm up. -->
+  <div emptyActions class="d-grid d-sm-flex justify-content-sm-center">
+    <button type="button" class="btn btn-outline-neutral btn-add" (click)="viewPreviousMonth()">View {{ previousMonthName }} report</button>
+  </div>
+</app-empty-state>
+
+<!-- Compare options, shared by both dropdowns. -->
+<ng-template #compareItems>
+  <li *ngFor="let option of compareOptions">
+    <button type="button" class="dropdown-item fw-semibold" [class.active]="option.value === compareMonths"
+            [attr.aria-current]="option.value === compareMonths ? 'true' : null"
+            (click)="setCompareMonths(option.value)">{{ option.label }}</button>
+  </li>
+</ng-template>

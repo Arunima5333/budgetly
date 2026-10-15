@@ -1,0 +1,18 @@
+/* Shape, surface and error red come from the shared .app-modal class (styles.css). */
+.add-txn-modal {
+  --bs-modal-width: 520px;
+}
+
+/* Edit mode is a little wider so its three-button footer has room (add mode stays 520px). */
+.add-txn-modal.is-edit {
+  --bs-modal-width: 580px;
+}
+
+/* 8px dot; white by default (selected pill), category colour set inline otherwise. */
+.category-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #fff;
+}

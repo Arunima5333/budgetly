@@ -1,0 +1,29 @@
+<div #modalEl class="modal fade app-modal delete-txn-modal" tabindex="-1"
+     [attr.aria-labelledby]="ids.title" [attr.aria-describedby]="ids.description" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4 border">
+      <!-- Header row: same as the add/edit modal. × counts as Cancel. -->
+      <div class="d-flex justify-content-between align-items-center">
+        <h2 class="h4 fw-bold mb-0" [id]="ids.title">Delete this transaction?</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Dividers separate header, content and footer (shared .modal-divider). -->
+      <div class="modal-divider mt-4" aria-hidden="true"></div>
+
+      <div class="py-4" [id]="ids.description">
+        <p class="text-break mb-0" *ngIf="transaction">
+          {{ transaction.description }} · {{ transaction.amount | inr }} · {{ dateLabel }}
+        </p>
+      </div>
+
+      <div class="modal-divider" aria-hidden="true"></div>
+
+      <!-- Footer: same pattern as the add modal. Stacked below sm (Delete, Cancel); from sm up right-aligned Cancel + Delete. -->
+      <div class="d-flex flex-column flex-sm-row justify-content-sm-end gap-2 mt-4">
+        <button type="button" class="btn btn-lg btn-delete order-1 order-sm-2" (click)="confirmDelete()">Delete</button>
+        <button #cancelButton type="button" class="btn btn-outline-secondary btn-lg order-2 order-sm-1" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>

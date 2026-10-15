@@ -1,0 +1,189 @@
+.min-w-0 {
+  min-width: 0;
+}
+
+/* Rows: lines between rows only, consistent vertical padding. */
+.attention-list li {
+  padding: 0.75rem 0;
+}
+
+.attention-list li:first-child {
+  padding-top: 0;
+}
+
+.attention-list li:last-child {
+  padding-bottom: 0;
+}
+
+.attention-list li + li {
+  border-top: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+/* Same 10px dot as the Overview "Budget by category" card. */
+.category-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* "View transactions": thin outline, accent text (tint in dark mode), accent-tinted hover. */
+.view-txn-btn {
+  --bs-btn-color: var(--bs-link-color);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: var(--bs-border-color);
+  --bs-btn-hover-color: var(--bs-link-color);
+  --bs-btn-hover-bg: var(--bs-primary-bg-subtle);
+  --bs-btn-hover-border-color: var(--bs-border-color);
+  --bs-btn-active-color: var(--bs-link-color);
+  --bs-btn-active-bg: var(--bs-primary-bg-subtle);
+  --bs-btn-active-border-color: var(--bs-border-color);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Add category modal: same 520px as Add transaction (shell from the shared .app-modal). */
+.add-category-modal {
+  --bs-modal-width: 520px;
+}
+
+/* Edit mode is wider for its three-button footer, like Edit transaction (add mode stays 520px). */
+.add-category-modal.is-edit {
+  --bs-modal-width: 580px;
+}
+
+/* Delete category dialog: same 520px as Delete transaction. */
+.delete-category-modal {
+  --bs-modal-width: 520px;
+}
+
+/* Limit hint: muted, or amber (--status-warn-fg) when budgets exceed income. Never blocks saving. */
+.limit-hint.is-warn {
+  color: var(--status-warn-fg);
+  font-weight: 600;
+}
+
+/* Colour swatches (native radios); selected = ring with a surface-coloured gap. */
+.color-swatch {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.btn-check:checked + .color-swatch {
+  box-shadow: 0 0 0 2px var(--app-surface), 0 0 0 4px var(--bs-body-color);
+}
+
+.btn-check:focus-visible + .color-swatch {
+  box-shadow: 0 0 0 2px var(--app-surface), 0 0 0 4px var(--bs-link-color), 0 0 0 8px var(--bs-focus-ring-color);
+}
+
+/* Preview of the new row: dashed box, empty 6px bar like the Overview budget card. */
+.category-preview {
+  padding: 0.75rem 1rem;
+  border: var(--bs-border-width) dashed var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+}
+
+.preview-bar {
+  height: 6px;
+}
+
+/* Category cards (md+) and the single-card list (below md). */
+.budget-amount {
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.budget-bar {
+  height: 6px;
+}
+
+.category-list-mobile li {
+  padding: 0.75rem 0;
+}
+
+.category-list-mobile li:first-child {
+  padding-top: 0;
+}
+
+.category-list-mobile li:last-child {
+  padding-bottom: 0;
+}
+
+.category-list-mobile li + li {
+  border-top: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+/*
+ * New month: limits card (two thirds wide from lg up), the clean table look of Transactions.
+ * Lines (--hairline) under the header and under every row, inset: the card keeps 1rem side padding
+ * (app-card's top/bottom padding is removed with py-0) so they never touch the card edges.
+ * Text sits where it did before: names/notes 1.25rem from the card edge, pencils 1rem.
+ */
+.limits-card {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.limits-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--bs-body-color);
+  --bs-table-border-color: var(--hairline);
+  table-layout: fixed;
+}
+
+.limits-table th,
+.limits-table td {
+  padding: 0.75rem;
+}
+
+.limits-table th:first-child,
+.limits-table td:first-child {
+  padding-left: 0.25rem;
+}
+
+.limits-table th:last-child,
+.limits-table td:last-child {
+  padding-right: 0;
+}
+
+.limits-table th {
+  color: var(--bs-secondary-color);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.limits-table .col-limit {
+  width: 8.5rem;
+}
+
+.limits-table .col-action {
+  width: 3.25rem;
+}
+
+/* Phones: no column headings (the list starts with the first category), and a narrower limit column
+   so normal category names fit (long ones truncate). Bootstrap has no table-header-group display utility. */
+@media (max-width: 767.98px) {
+  .limits-head {
+    display: none;
+  }
+
+  .limits-table .col-limit {
+    width: 6.5rem;
+  }
+}
+
+.limit-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Note under the list; the last row's line is its divider. */
+.limits-footer {
+  padding: 1rem 0 1rem 0.25rem;
+}

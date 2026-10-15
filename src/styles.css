@@ -1,0 +1,476 @@
+/* Global styles. Bootstrap and Bootstrap Icons are loaded first via angular.json. */
+
+/* Accent #4338CA as Bootstrap primary, plus app-wide font. */
+:root,
+[data-bs-theme=light] {
+  --bs-body-font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --bs-primary: #4338ca;
+  --bs-primary-rgb: 67, 56, 202;
+  --bs-primary-text-emphasis: #3730a3;
+  --bs-primary-bg-subtle: #e0e7ff;
+  --bs-primary-border-subtle: #c7d2fe;
+
+  --bs-link-color: #4338ca;
+  --bs-link-color-rgb: 67, 56, 202;
+  --bs-link-hover-color: #3730a3;
+  --bs-link-hover-color-rgb: 55, 48, 163;
+
+  --bs-focus-ring-color: rgba(67, 56, 202, 0.25);
+
+  /* App surfaces: grey page, white cards/sidebar. */
+  --app-page-bg: #f5f6f8;
+  --app-page-bg-rgb: 245, 246, 248;
+  --app-surface: #ffffff;
+  --app-surface-rgb: 255, 255, 255;
+
+  --bs-body-bg: var(--app-page-bg);
+  --bs-body-bg-rgb: var(--app-page-bg-rgb);
+
+  /* Budget status badges (bg / text). */
+  --status-ok-bg: #e6f4ec;
+  --status-ok-fg: #1c6b47;
+  --status-warn-bg: #fdf0dd;
+  --status-warn-fg: #8f4a00;
+  --status-over-bg: #fce7e5;
+  --status-over-fg: #b42318;
+
+  /* Budget progress fills; the same in both themes (on track uses --bs-primary). */
+  --status-warn-bar: #e08a1e;
+  --status-over-bar: #d93a2b;
+
+  /* Chart bars that aren't highlighted (Reports "Monthly spending"). */
+  --chart-bar-muted: #e8ebf0;
+
+  /* Reports "Insights" tiles (md and up). */
+  --insight-tile-bg: #eef0f4;
+  /* "View only" badge and the empty-month icon boxes. */
+  --view-only-bg: #e2e5ea;
+  --view-only-fg: #5a6170;
+  /* Accent icon in empty-state cards. */
+  --icon-accent: #4338ca;
+  /* Thin light divider lines (e.g. Budgets limits list); also the neutral button border. */
+  --hairline: #e3e6eb;
+  /* Neutral outlined button (.btn-outline-neutral). */
+  --btn-neutral-border: var(--hairline);
+  --btn-neutral-border-hover: #cfd4dc;
+  --btn-neutral-fg: #141821;
+
+  /* Income amounts in lists: same green as the "On track" badge text, in both themes. */
+  --amount-income: var(--status-ok-fg);
+}
+
+/* Dark mode: keep the accent for filled surfaces, use lighter tints for text. */
+[data-bs-theme=dark] {
+  --bs-primary-text-emphasis: #a5b4fc;
+  --bs-primary-bg-subtle: #1e1b4b;
+  --bs-primary-border-subtle: #3730a3;
+
+  --bs-link-color: #a5b4fc;
+  --bs-link-color-rgb: 165, 180, 252;
+  --bs-link-hover-color: #c7d2fe;
+  --bs-link-hover-color-rgb: 199, 210, 254;
+
+  --bs-focus-ring-color: rgba(129, 140, 248, 0.35);
+
+  --app-page-bg: #0e1015;
+  --app-page-bg-rgb: 14, 16, 21;
+  --app-surface: #161921;
+  --app-surface-rgb: 22, 25, 33;
+
+  --bs-body-bg: var(--app-page-bg);
+  --bs-body-bg-rgb: var(--app-page-bg-rgb);
+
+  --status-ok-bg: #163328;
+  --status-ok-fg: #7bd8ae;
+  --status-warn-bg: #3a2a12;
+  --status-warn-fg: #f6b867;
+  --status-over-bg: #3d1a18;
+  --status-over-fg: #ff9a8f;
+
+  --chart-bar-muted: #2a2f3b;
+
+  --insight-tile-bg: #20242e;
+  --view-only-bg: #2a2f3b;
+  --view-only-fg: #a0a7b4;
+  --icon-accent: #aeb6ff;
+  --hairline: #272b35;
+  --btn-neutral-border: var(--hairline);
+  --btn-neutral-border-hover: #3a3f4b;
+  --btn-neutral-fg: #eceef2;
+}
+
+/* Bootstrap headings default to 500; make all titles bold. */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-weight: 700;
+}
+
+/* Bootstrap sets --bs-card-bg on .card itself (to body-bg), so override it there. */
+.card {
+  --bs-card-bg: var(--app-surface);
+}
+
+/* Bootstrap compiles these with literal blue values, so re-point them at the accent. */
+.btn-primary {
+  --bs-btn-bg: #4338ca;
+  --bs-btn-border-color: #4338ca;
+  --bs-btn-hover-bg: #3730a3;
+  --bs-btn-hover-border-color: #3730a3;
+  --bs-btn-focus-shadow-rgb: 67, 56, 202;
+  --bs-btn-active-bg: #312e81;
+  --bs-btn-active-border-color: #312e81;
+  --bs-btn-disabled-bg: #4338ca;
+  --bs-btn-disabled-border-color: #4338ca;
+}
+
+.nav-pills {
+  --bs-nav-pills-link-active-bg: #4338ca;
+}
+
+/* Modals and form controls sit on the raised surface, not the page grey (body-bg). */
+.modal {
+  --bs-modal-bg: var(--app-surface);
+}
+
+/*
+ * Shared shell for the app's dialogs (add/edit and delete transaction): 20px corners, surface
+ * background inside (body-bg is the page grey elsewhere), and a softer error red scoped to the
+ * dialog so the Overview over-budget colours keep Bootstrap's own danger red.
+ */
+.app-modal {
+  --bs-modal-border-radius: 20px;
+  --bs-modal-inner-border-radius: calc(20px - var(--bs-border-width));
+  --bs-body-bg: var(--app-surface);
+  --bs-body-bg-rgb: var(--app-surface-rgb);
+  --bs-danger: #b42318;
+  --bs-danger-rgb: 180, 35, 24;
+  --bs-form-invalid-color: #b42318;
+  --bs-form-invalid-border-color: #b42318;
+}
+
+[data-bs-theme=dark] .app-modal {
+  --bs-danger: #ff9a8f;
+  --bs-danger-rgb: 255, 154, 143;
+  --bs-form-invalid-color: #ff9a8f;
+  --bs-form-invalid-border-color: #ff9a8f;
+}
+
+/* Thin full-bleed line between a dialog's header, content and footer (delete dialogs); bleeds into the p-4 padding. */
+.modal-divider {
+  margin: 0 -1.5rem;
+  border-top: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+/* Filled red "Delete" button in the delete dialogs (white text: ~6.0:1 on #B42318, ~4.6:1 on #D93A2B). */
+.btn-delete {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: #b42318;
+  --bs-btn-border-color: #b42318;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #9a1e14;
+  --bs-btn-hover-border-color: #9a1e14;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #861a11;
+  --bs-btn-active-border-color: #861a11;
+  --bs-btn-focus-shadow-rgb: 180, 35, 24;
+}
+
+[data-bs-theme=dark] .btn-delete {
+  --bs-btn-bg: #d93a2b;
+  --bs-btn-border-color: #d93a2b;
+  --bs-btn-hover-bg: #c23224;
+  --bs-btn-hover-border-color: #c23224;
+  --bs-btn-active-bg: #ab2c20;
+  --bs-btn-active-border-color: #ab2c20;
+  --bs-btn-focus-shadow-rgb: 217, 58, 43;
+}
+
+/* Edit-mode "Delete transaction" / "Delete category" text button: underline on hover, focus ring in the error red. */
+.delete-link {
+  --bs-btn-focus-shadow-rgb: var(--bs-danger-rgb);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.delete-link:hover {
+  text-decoration: underline !important;
+}
+
+.form-control,
+.form-control:focus,
+.form-select {
+  background-color: var(--app-surface);
+}
+
+/* Dropdown menus on the surface, with the accent for the active item. */
+.dropdown-menu {
+  --bs-dropdown-bg: var(--app-surface);
+  --bs-dropdown-link-active-color: #fff;
+  --bs-dropdown-link-active-bg: var(--bs-primary);
+}
+
+/* Empty-state icon box (app-empty-state): darker gray than Bootstrap offers. */
+.icon-box-bg {
+  background-color: var(--view-only-bg);
+}
+
+/* Accent-coloured empty-state icon (svg stroke uses currentColor). */
+.icon-accent {
+  color: var(--icon-accent);
+}
+
+/* Shared card surface (Transactions filter card; Overview cards keep their own classes). */
+.app-card {
+  padding: 1.25rem;
+  border: var(--bs-border-width) solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--app-surface);
+}
+
+/* "+ Add transaction" button (Overview and Transactions): 42px high, rounded, icon + label. */
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  border-radius: var(--bs-border-radius-lg);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/*
+ * Neutral outlined button: transparent, thin neutral border, normal (not accent) text, semi-bold.
+ * Combine with .btn-add for the 42px "+ Add" size (e.g. Overview "Review budgets").
+ */
+.btn-outline-neutral {
+  --bs-btn-color: var(--btn-neutral-fg);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: var(--btn-neutral-border);
+  --bs-btn-hover-color: var(--btn-neutral-fg);
+  --bs-btn-hover-bg: var(--bs-tertiary-bg);
+  --bs-btn-hover-border-color: var(--btn-neutral-border-hover);
+  --bs-btn-active-color: var(--btn-neutral-fg);
+  --bs-btn-active-bg: var(--bs-tertiary-bg);
+  --bs-btn-active-border-color: var(--btn-neutral-border-hover);
+  --bs-btn-disabled-color: var(--btn-neutral-fg);
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: var(--btn-neutral-border);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+  --bs-btn-font-weight: 600;
+  color: var(--bs-btn-color); /* .btn-add sets white text */
+}
+
+.btn-outline-neutral:focus-visible {
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+/* Secondary "+ Add …" button (e.g. Budgets "+ Add category"): use with `btn btn-add`. */
+.btn-add-secondary {
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-bg: var(--app-surface);
+  --bs-btn-border-color: var(--bs-border-color);
+  --bs-btn-hover-color: var(--bs-body-color);
+  --bs-btn-hover-bg: var(--bs-tertiary-bg);
+  --bs-btn-hover-border-color: var(--bs-border-color);
+  --bs-btn-active-color: var(--bs-body-color);
+  --bs-btn-active-bg: var(--bs-tertiary-bg);
+  --bs-btn-active-border-color: var(--bs-border-color);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+  color: var(--bs-body-color); /* .btn-add sets white text */
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+.form-check-input:checked {
+  background-color: #4338ca;
+  border-color: #4338ca;
+}
+
+.form-switch .form-check-input:focus:not(:checked) {
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23818cf8'/%3e%3c/svg%3e");
+}
+
+/* Transaction rows (Overview "Recent transactions", Transactions mobile list): badge, text, amount. */
+.txn-list > li + li {
+  border-top: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+/* Same look as the sidebar .brand-mark; neutral grey when the category colour is unknown. */
+.txn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background-color: var(--bs-secondary-color);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.txn-text {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.txn-description {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.txn-meta {
+  color: var(--bs-secondary-color);
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.txn-amount {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.txn-amount.is-income {
+  color: var(--amount-income);
+}
+
+/* Budget status pills (Overview "Budget by category", Budgets "Needs attention"). */
+.status-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--bs-border-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-on-track {
+  background-color: var(--status-ok-bg);
+  color: var(--status-ok-fg);
+}
+
+.status-close,
+.status-at-limit {
+  background-color: var(--status-warn-bg);
+  color: var(--status-warn-fg);
+}
+
+.status-over {
+  background-color: var(--status-over-bg);
+  color: var(--status-over-fg);
+}
+
+/* Budget progress fills by status (Overview budget card, Budgets category cards). */
+.progress-bar.bar-on-track {
+  background-color: var(--bs-primary);
+}
+
+.progress-bar.bar-close,
+.progress-bar.bar-at-limit {
+  background-color: var(--status-warn-bar);
+}
+
+.progress-bar.bar-over {
+  background-color: var(--status-over-bar);
+}
+
+/* Small round separator in page header meta lines (Transactions, Budgets). */
+.meta-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 0.5rem;
+  border-radius: 50%;
+  background-color: currentColor;
+  vertical-align: middle;
+}
+
+/* Icon-only button: 40px square, transparent, muted 18px icon, tertiary hover, accent focus ring. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bs-border-radius);
+  background: transparent;
+  color: var(--bs-secondary-color);
+  font-size: 18px;
+  text-decoration: none;
+}
+
+.icon-btn:hover {
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+}
+
+.icon-btn:focus {
+  outline: 0;
+}
+
+.icon-btn:focus-visible {
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+/* Field-style filter controls (Transactions search + Type/Sort, Reports Compare): 44px, surface, rounded. */
+.filter-control {
+  height: 44px;
+  border: var(--bs-border-width) solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--app-surface);
+  color: var(--bs-body-color);
+}
+
+/* Dropdown trigger styled as a form field; Bootstrap's caret sits at the right end. */
+.filter-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0 0.875rem;
+  text-align: left;
+}
+
+.filter-select:focus {
+  outline: 0;
+}
+
+.filter-select:focus-visible,
+.filter-select[aria-expanded="true"] {
+  border-color: #818cf8; /* same as the global .form-control:focus border */
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+.filter-menu {
+  min-width: 100%;
+}
+
+.filter-menu .dropdown-item {
+  white-space: normal;
+}
+
+.dropdown-item-desc {
+  color: var(--bs-secondary-color);
+}
+
+.dropdown-item.active .dropdown-item-desc {
+  color: rgba(255, 255, 255, 0.8);
+}

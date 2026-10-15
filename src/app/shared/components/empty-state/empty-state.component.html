@@ -1,0 +1,21 @@
+<!-- compactMobile: less vertical space below lg (py-4 + my-3), the full py-5 + my-5 from lg up. -->
+<section class="card border rounded-4 shadow-none mt-4" [ngClass]="compactMobile ? 'py-4 py-lg-5' : 'py-5'"
+         [attr.aria-labelledby]="headingId">
+  <div class="d-flex flex-column align-items-center text-center gap-3" [ngClass]="compactMobile ? 'my-3 my-lg-5' : 'my-5'">
+    <div class="d-inline-flex p-3 rounded-3 icon-box-bg" aria-hidden="true">
+      <ng-content select="[emptyIcon]"></ng-content>
+    </div>
+    <h2 class="h5 fw-bold mb-0" [id]="headingId">{{ heading }}</h2>
+    <div class="row justify-content-center w-100 mx-0">
+      <div class="col-12 col-md-8 col-lg-5">
+        <p class="text-body-secondary mb-0">{{ text }}<ng-content select="[emptyText]"></ng-content></p>
+      </div>
+    </div>
+    <!-- Same 12px column padding as the text, so full-width phone buttons line up with it. -->
+    <div class="row w-100 mx-0" *ngIf="hasActions">
+      <div class="col-12">
+        <ng-content select="[emptyActions]"></ng-content>
+      </div>
+    </div>
+  </div>
+</section>
