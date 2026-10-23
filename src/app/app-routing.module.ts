@@ -11,7 +11,9 @@ const routes: Routes = [
   { path: 'overview', component: OverviewComponent },
   { path: 'transactions', component: TransactionsComponent },
   { path: 'budgets', component: BudgetsComponent },
-  { path: 'reports', component: ReportsComponent }
+  { path: 'reports', component: ReportsComponent },
+  // Unknown addresses go to Overview (a dev ?today= is read at startup, so it still applies).
+  { path: '**', redirectTo: 'overview' }
 ];
 
 @NgModule({

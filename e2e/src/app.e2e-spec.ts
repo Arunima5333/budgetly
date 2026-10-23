@@ -1,16 +1,23 @@
 import { AppPage } from './app.po';
 import { browser, logging } from 'protractor';
 
-describe('workspace-project App', () => {
+describe('Budgetly', () => {
   let page: AppPage;
 
   beforeEach(() => {
     page = new AppPage();
   });
 
-  it('should display welcome message', () => {
+  it('opens on Overview with its heading', () => {
     page.navigateTo();
-    expect(page.getTitleText()).toEqual('Welcome to budgetly!');
+    expect(page.getPath()).toEqual('/overview');
+    expect(page.getHeadingText()).toEqual('Overview');
+  });
+
+  it('redirects an unknown address to Overview', () => {
+    page.navigateTo('foo');
+    expect(page.getPath()).toEqual('/overview');
+    expect(page.getHeadingText()).toEqual('Overview');
   });
 
   afterEach(async () => {

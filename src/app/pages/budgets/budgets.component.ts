@@ -129,6 +129,10 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
   private modal: any;
   private isShown = false;
   private returnFocusTo: HTMLElement | null = null;
+  /** A valid category save has started: repeat clicks/Enter are ignored until the modal opens again. */
+  private saving = false;
+  /** Delete category confirmed: repeat clicks are ignored until the dialog opens again. */
+  private deleting = false;
 
   /** Category shown in the "Delete this category?" dialog. */
   deletingCategory: Category | null = null;
@@ -149,6 +153,7 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
 
   private readonly onDeleteHidden = () => {
     this.isDeleteShown = false;
+    this.deleting = false;
     const name = this.deletingCategory ? this.deletingCategory.name : null;
     let target: HTMLElement | null = null;
     if (!this.categoryWasDeleted) {
@@ -173,6 +178,7 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
 
   private readonly onHidden = () => {
     this.isShown = false;
+    this.saving = false;
     if (this.resetWhenHidden) {
       this.resetWhenHidden = false;
       this.resetCategoryForm();
@@ -397,10 +403,14 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
   }
 
   saveCategory() {
+    if (this.saving) {
+      return;
+    }
     this.submitted = true;
     if (this.categoryForm.invalid || this.duplicateOf) {
       return;
     }
+    this.saving = true;
     const input = {
       name: this.trimmedName,
       monthlyLimit: Number(this.categoryForm.get('limit').value),
@@ -412,6 +422,9 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
       const updated = this.dataService.updateCategory(this.editingName, input);
       this.lastSavedName = updated ? updated.name : null;
       this.closeAddCategory();
+      if (updated) {
+        this.alertService.show('Category updated');
+      }
       return;
     }
 
@@ -441,9 +454,10 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
 
   /** "Delete" in the confirm dialog. Refused (e.g. transactions were added meanwhile): just closes. */
   confirmDeleteCategory() {
-    if (!this.deletingCategory) {
+    if (!this.deletingCategory || this.deleting) {
       return;
     }
+    this.deleting = true;
     this.categoryWasDeleted = this.dataService.deleteCategory(this.deletingCategory.name);
     if (this.deleteModal) {
       this.deleteModal.hide();
@@ -468,6 +482,7 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
     }
     this.deletingCategory = category;
     this.categoryWasDeleted = false;
+    this.deleting = false;
     const active = document.activeElement as HTMLElement;
     this.deleteReturnFocusTo = active && active !== document.body ? active : null;
     if (this.deleteModal) {
@@ -477,8 +492,10 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
 
   /** The visible pencil of a category's card (desktop grid or mobile list), or null. */
   private findPencil(name: string): HTMLElement | null {
-    const pencils = this.host.nativeElement.querySelectorAll('[aria-label="Edit ' + name + ' budget"]');
-    return Array.prototype.filter.call(pencils, (el: HTMLElement) => el.offsetParent !== null)[0] || null;
+    // Compared, not put in a selector: names may contain quotes or backslashes.
+    const pencils = this.host.nativeElement.querySelectorAll('[data-category]');
+    return Array.prototype.filter.call(pencils, (el: HTMLElement) =>
+      el.getAttribute('data-category') === name && el.offsetParent !== null)[0] || null;
   }
 
   /** "+ Add category", or the Categories heading when that button isn't shown (past months); null if neither is. */
@@ -503,6 +520,7 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
   }
 
   private show() {
+    this.saving = false;
     if (this.modal) {
       this.modal.show();
     }

@@ -43,14 +43,6 @@
   font-size: 1.25rem;
 }
 
-.theme-toggle:focus {
-  outline: none;
-}
-
-.theme-toggle:focus-visible {
-  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
-}
-
 /* Mobile offcanvas panel uses the raised surface instead of the page background. */
 .sidebar {
   --bs-offcanvas-bg: var(--app-surface);
@@ -111,11 +103,15 @@
     padding: 0 0.75rem 1.5rem;
   }
 
+  /* 4px of padding (pulled back with a negative margin, so nothing moves) keeps the links' and switch's
+     focus rings inside this scrolling area instead of clipped at its edges. */
   .sidebar .offcanvas-body.sidebar-body {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     overflow-y: auto;
+    padding: 4px;
+    margin: -4px;
   }
 }
 

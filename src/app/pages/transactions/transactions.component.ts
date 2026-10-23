@@ -122,16 +122,17 @@ export class TransactionsComponent implements OnInit, OnDestroy {
 
   /**
    * Deep link from Budgets ("View transactions"): ?category=<name> preselects that category with
-   * default filters otherwise. Invalid names are ignored. The param is then removed from the URL so
-   * later pill changes don't disagree with it and a refresh shows the default filters.
+   * default filters otherwise. Matched trimmed and case-insensitively against expense and income names
+   * (e.g. ?category=food), selecting the STORED name; unknown or empty values are ignored. The param is then
+   * removed from the URL so later pill changes don't disagree with it and a refresh shows the default filters.
    */
   ngOnInit() {
-    const category = this.route.snapshot.queryParamMap.get('category');
-    if (category === null) {
+    const param = this.route.snapshot.queryParamMap.get('category');
+    if (param === null) {
       return;
     }
-    const allNames = this.expenseCategoryNames.concat(this.incomeCategoryNames);
-    if (allNames.indexOf(category) !== -1) {
+    const category = this.dataService.findCategoryName(param);
+    if (category) {
       this.filtersSubject.next({ ...DEFAULT_TRANSACTION_FILTERS, type: 'all', category });
       // After render: bring the selected pill into view in the sideways-scrolling mobile row.
       setTimeout(() => {
@@ -211,11 +212,21 @@ export class TransactionsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** After a delete the trigger row is gone, so move focus to the results card. */
+  /**
+   * After a delete the trigger row is gone: focus the results card, or, when that was the current month's last
+   * transaction, the "+ Add transaction" button in the empty-state card (once it has rendered).
+   */
   onTransactionDeleted() {
-    if (this.resultsCard) {
-      this.resultsCard.nativeElement.focus({ preventScroll: true });
-    }
+    setTimeout(() => {
+      if (this.resultsCard) {
+        this.resultsCard.nativeElement.focus({ preventScroll: true });
+        return;
+      }
+      const add: HTMLElement | null = this.host.nativeElement.querySelector('app-empty-state .btn-primary');
+      if (add) {
+        add.focus();
+      }
+    });
   }
 
   /**
@@ -226,12 +237,52 @@ export class TransactionsComponent implements OnInit, OnDestroy {
     if (document.activeElement && document.activeElement !== document.body) {
       return;
     }
-    const controls = this.host.nativeElement.querySelectorAll('[data-edit-id="' + transaction.id + '"]');
-    const visible = Array.prototype.filter.call(controls, (el: HTMLElement) => el.offsetParent !== null)[0];
+    // Compared, not put in a selector: ids are any saved string (quotes, backslashes).
+    const controls = this.host.nativeElement.querySelectorAll('[data-edit-id]');
+    const visible = Array.prototype.filter.call(controls, (el: HTMLElement) =>
+      el.getAttribute('data-edit-id') === transaction.id && el.offsetParent !== null)[0];
     if (visible) {
       visible.focus({ preventScroll: true });
     } else if (this.resultsCard) {
       this.resultsCard.nativeElement.focus({ preventScroll: true });
+    }
+  }
+
+  /**
+   * Phones (sideways-scrolling pill row): when a pill gets KEYBOARD focus, scroll only the row so the whole pill
+   * and its focus ring (4px each side) are visible. Never scrolls the page; nothing happens when the pill is
+   * already fully visible, on mouse/touch focus, or when the row doesn't scroll (wrapping pills from md up).
+   */
+  onPillFocus(event: FocusEvent) {
+    const pill = event.target as HTMLElement;
+    const row = event.currentTarget as HTMLElement;
+    if (!pill || !pill.classList || !pill.classList.contains('filter-pill') || row.scrollWidth <= row.clientWidth) {
+      return;
+    }
+    try {
+      if (!pill.matches(':focus-visible')) {
+        return;
+      }
+    } catch (e) {
+      // Browsers without :focus-visible: treat every focus as keyboard focus.
+    }
+    const ring = 4;
+    const left = pill.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft - ring;
+    const right = left + pill.offsetWidth + 2 * ring;
+    let target = row.scrollLeft;
+    if (left < row.scrollLeft) {
+      target = left;
+    } else if (right > row.scrollLeft + row.clientWidth) {
+      target = right - row.clientWidth;
+    }
+    if (Math.abs(target - row.scrollLeft) < 1) {
+      return;
+    }
+    const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (typeof row.scrollTo === 'function') {
+      row.scrollTo({ left: target, behavior: reduce ? 'auto' : 'smooth' });
+    } else {
+      row.scrollLeft = target;
     }
   }
 

@@ -17,8 +17,8 @@ export interface BarChartColors {
   bodyText: string;
   /** Dashed "No data" outline for the selected month: --icon-accent (#4338ca light, #aeb6ff dark). */
   accentOutline: string;
-  /** Dashed "No data" outline for other months: --hairline (#e3e6eb light, #272b35 dark). */
-  hairline: string;
+  /** Dashed "No data" outline for other months: --border-strong (#868d99 light, #6b7280 dark). */
+  strongOutline: string;
 }
 
 export function readBarChartColors(): BarChartColors {
@@ -31,7 +31,7 @@ export function readBarChartColors(): BarChartColors {
     mutedText: get('--bs-secondary-color', '#6c757d'),
     bodyText: get('--bs-body-color', '#212529'),
     accentOutline: get('--icon-accent', '#4338ca'),
-    hairline: get('--hairline', '#e3e6eb')
+    strongOutline: get('--border-strong', '#868d99')
   };
 }
 
@@ -139,7 +139,7 @@ export function fitBarLabels(ctx: any, values: number[], noData: boolean[], maxW
  * month (bold, body colour). Font sizes shrink with the space per bar so labels never overlap;
  * in compact (mobile) mode text starts smaller and amounts drop the '₹'.
  * Months with no transactions (dataset.noData[i]) get a dashed outline the full height of the plot area
- * (rounded top, open bottom on the baseline) with "No data" above it: hairline gray, or the accent for the
+ * (rounded top, open bottom on the baseline) with "No data" above it: strong gray, or the accent for the
  * selected month. A month with transactions but no expenses is a real ₹0 (no bar, '₹0' label).
  */
 export function monthlyLabelsPlugin(getColors: () => BarChartColors, family: string, isCompact: () => boolean = () => false) {
@@ -182,7 +182,7 @@ export function monthlyLabelsPlugin(getColors: () => BarChartColors, family: str
         const selected = i === count - 1;
         const emptyBar = !!noData[i];
         if (emptyBar) {
-          drawDashedEmptyBar(ctx, vm.x, vm.width, area.top, area.bottom, selected ? colors.accentOutline : colors.hairline);
+          drawDashedEmptyBar(ctx, vm.x, vm.width, area.top, area.bottom, selected ? colors.accentOutline : colors.strongOutline);
         }
         const top = emptyBar ? area.top : (values[i] > 0 ? Math.min(vm.y, vm.base) : area.bottom);
         ctx.font = font(amounts.size, 500, family);

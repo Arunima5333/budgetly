@@ -11,12 +11,18 @@ import { YearMonth } from '../models/year-month.model';
 import { computeCategoryBudgets } from '../utils/category-budgets';
 import { MIN_SELECTABLE_MONTH, monthIndex } from '../utils/month-range';
 import { computeMonthSummary } from '../utils/month-summary';
+import { cleanStoredCategories, cleanStoredTransactions, StoredStatus } from '../utils/stored-data';
 import { transactionColor } from '../utils/transaction-color';
+import { AlertService } from './alert.service';
 import { TodayService } from './today.service';
 
 const STORAGE_KEY = 'budgetly.mockData.v3';
-/** Expense categories (defaults + user-added). Separate key so monthly mock regeneration never wipes them. */
+/** Expense categories (defaults + user-added). */
 const CATEGORIES_STORAGE_KEY = 'budgetly.categories.v1';
+/** Where the original value is copied (once) before broken saved data is cleaned and written back. */
+const BACKUP_SUFFIX = '.backup';
+const SKIPPED_WARNING = 'Some saved data couldn\'t be read and was skipped.';
+const UNREADABLE_WARNING = 'Your saved data couldn\'t be read, so Budgetly started empty. A backup was kept.';
 export const CATEGORY_NAME_MAX_LENGTH = 24;
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 /** Older data formats (v1: pre-rupee amounts, v2: single 'Income' category); removed on load. */
@@ -33,7 +39,7 @@ export interface MonthlyExpenseTotal {
 }
 
 interface StoredMockData {
-  /** 'YYYY-MM' of the month the data was generated in. */
+  /** 'YYYY-MM' of the month the mock data was first generated in. Information only: nothing acts on it. */
   generatedFor: string;
   transactions: Transaction[];
 }
@@ -44,8 +50,11 @@ interface StoredMockData {
 export class DataService {
   private transactions: Transaction[];
 
-  /** 'YYYY-MM' the stored data belongs to; written back unchanged when the user adds transactions. */
+  /** 'YYYY-MM' the mock data was generated in (information only); written back unchanged. */
   private generatedFor: string;
+
+  /** Worst problem found while reading saved data at startup (shown once as a warning alert). */
+  private loadProblem: StoredStatus = 'ok';
 
   /** Expense categories: the defaults plus any the user added (persisted separately). */
   private categories: Category[];
@@ -70,9 +79,15 @@ export class DataService {
   /** True while the selected month is the earliest selectable month (see getMinSelectableMonth): ‹ is disabled. */
   isFirstSelectableMonthSelected$: Observable<boolean>;
 
-  constructor(private today: TodayService) {
+  constructor(private today: TodayService, private alertService: AlertService) {
     this.categories = this.loadCategories();
     this.transactions = this.loadOrGenerate();
+    // Shown once, even though <app-alert> subscribes later (AlertService holds it until then).
+    if (this.loadProblem === 'unreadable') {
+      this.alertService.show(UNREADABLE_WARNING, 'warning');
+    } else if (this.loadProblem === 'partial') {
+      this.alertService.show(SKIPPED_WARNING, 'warning');
+    }
 
     // TodayService is injected (so already created): a dev ?today= date applies from the first month shown.
     this.selectedMonthSubject = new BehaviorSubject<YearMonth>(this.today.currentYearMonth());
@@ -173,7 +188,8 @@ export class DataService {
    * Updates the expense category called `originalName` in place (order kept), with the same rules
    * as addCategory except that its own current name doesn't count as a duplicate.
    * On a rename, every transaction in that category is re-labelled with the new name (transactions
-   * reference categories by name) and saved too. Notifies `dataChanged$` once and returns a copy,
+   * reference categories by name), and those whose description is exactly the old name (saved without a note)
+   * get the new name as description too; saved in one write. Notifies `dataChanged$` once and returns a copy,
    * or null for an unknown name or invalid input.
    */
   updateCategory(originalName: string, input: NewCategoryInput): Category | null {
@@ -189,8 +205,9 @@ export class DataService {
     this.writeCategories();
 
     if (category.name !== originalName) {
-      this.transactions = this.transactions.map(t =>
-        t.type === 'expense' && t.category === originalName ? { ...t, category: category.name } : t);
+      this.transactions = this.transactions.map(t => t.type === 'expense' && t.category === originalName
+        ? { ...t, category: category.name, description: t.description === originalName ? category.name : t.description }
+        : t);
       this.writeStored({ generatedFor: this.generatedFor, transactions: this.transactions });
     }
     this.dataChangedSubject.next(undefined);
@@ -378,24 +395,73 @@ export class DataService {
     this.dataChangedSubject.next(undefined);
   }
 
+  /**
+   * Saved transactions, cleaned (see cleanStoredTransactions). Mock data is generated ONLY when nothing is
+   * saved (or storage is unavailable): a month change never regenerates or replaces saved data, so a new
+   * month simply starts empty. Broken entries are skipped, unreadable data starts empty; in both cases the
+   * original value is backed up and the cleaned data written back, so the warning shows once.
+   */
   private loadOrGenerate(): Transaction[] {
     this.removeLegacyData();
-    // Deliberately the REAL date, not TodayService: mock data and its regeneration key follow the real
-    // calendar, so a dev ?today= date never regenerates or reshapes the stored data.
-    const today = new Date();
-    const currentMonth = this.monthKey(today.getFullYear(), today.getMonth() + 1);
-    const stored = this.readStored();
-    this.generatedFor = currentMonth;
-
-    // Regenerate when the month has rolled over, so the current month is never empty.
-    // Note: this also discards transactions the user added in earlier months.
-    if (stored && stored.generatedFor === currentMonth) {
-      return this.sortNewestFirst(stored.transactions);
+    let raw: string | null;
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      // Storage blocked: not corruption. Mock data in memory only, no warning.
+      return this.generateMock(false);
     }
+    const cleaned = cleanStoredTransactions(raw);
+    if (cleaned.status === 'missing') {
+      return this.generateMock(true);
+    }
+    this.generatedFor = cleaned.generatedFor || this.realMonthKey();
+    if (cleaned.status !== 'ok') {
+      this.backupOnce(STORAGE_KEY, raw);
+      this.writeStored({ generatedFor: this.generatedFor, transactions: cleaned.transactions });
+      this.noteProblem(cleaned.status);
+    }
+    return this.sortNewestFirst(cleaned.transactions);
+  }
 
+  /**
+   * Fresh mock transactions. Deliberately the REAL date, not TodayService, so a dev ?today= date never
+   * reshapes them. Saved when `persist` is true.
+   */
+  private generateMock(persist: boolean): Transaction[] {
+    const today = new Date();
+    this.generatedFor = this.realMonthKey();
     const transactions = this.sortNewestFirst(generateMockTransactions(today));
-    this.writeStored({ generatedFor: currentMonth, transactions });
+    if (persist) {
+      this.writeStored({ generatedFor: this.generatedFor, transactions });
+    }
     return transactions;
+  }
+
+  /** 'YYYY-MM' of the real current month. */
+  private realMonthKey(): string {
+    const today = new Date();
+    return this.monthKey(today.getFullYear(), today.getMonth() + 1);
+  }
+
+  /** Copies the original saved value to `<key>.backup` unless a backup already exists. */
+  private backupOnce(key: string, raw: string | null) {
+    if (raw === null) {
+      return;
+    }
+    try {
+      if (localStorage.getItem(key + BACKUP_SUFFIX) === null) {
+        localStorage.setItem(key + BACKUP_SUFFIX, raw);
+      }
+    } catch (e) {
+      // Storage unavailable or full; the cleaned data still loads.
+    }
+  }
+
+  /** Keeps the worst load problem ('unreadable' beats 'partial'). */
+  private noteProblem(status: StoredStatus) {
+    if (status === 'unreadable' || (status === 'partial' && this.loadProblem !== 'unreadable')) {
+      this.loadProblem = status;
+    }
   }
 
   /** Normalised category from user input, or null if invalid (see addCategory for the rules). */
@@ -410,25 +476,29 @@ export class DataService {
     return valid ? { name, monthlyLimit, color: input.color.toLowerCase() } : null;
   }
 
-  /** Stored categories if valid (each with a name, #rrggbb colour and limit > 0), else the defaults. */
+  /**
+   * Saved categories, cleaned (see cleanStoredCategories): the defaults when nothing is saved (or storage is
+   * unavailable), an empty list when the saved value is unreadable; [] stays []. Broken entries are skipped;
+   * when anything was wrong the original is backed up and the cleaned list written back.
+   */
   private loadCategories(): Category[] {
+    let raw: string | null;
     try {
-      const raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
-      if (raw) {
-        const data = JSON.parse(raw);
-        // An empty list is valid: the user deleted every category.
-        const valid = Array.isArray(data) && data.every((c: any) => !!c
-          && typeof c.name === 'string' && c.name.trim().length > 0
-          && typeof c.color === 'string' && HEX_COLOR.test(c.color)
-          && typeof c.monthlyLimit === 'number' && isFinite(c.monthlyLimit) && c.monthlyLimit > 0);
-        if (valid) {
-          return data.map((c: Category) => ({ name: c.name, color: c.color, monthlyLimit: c.monthlyLimit }));
-        }
-      }
+      raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
     } catch (e) {
-      // Storage unavailable or corrupt JSON: fall back to the defaults.
+      return MOCK_CATEGORIES.map(c => ({ ...c }));
     }
-    return MOCK_CATEGORIES.map(c => ({ ...c }));
+    const cleaned = cleanStoredCategories(raw);
+    if (cleaned.status === 'missing') {
+      return MOCK_CATEGORIES.map(c => ({ ...c }));
+    }
+    if (cleaned.status !== 'ok') {
+      this.backupOnce(CATEGORIES_STORAGE_KEY, raw);
+      this.categories = cleaned.categories;
+      this.writeCategories();
+      this.noteProblem(cleaned.status);
+    }
+    return cleaned.categories;
   }
 
   private writeCategories(): void {
@@ -449,40 +519,12 @@ export class DataService {
     });
   }
 
-  private readStored(): StoredMockData | null {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        return null;
-      }
-      const data = JSON.parse(raw);
-      const valid = !!data
-        && typeof data.generatedFor === 'string'
-        && Array.isArray(data.transactions)
-        && data.transactions.every((t: any) => this.isTransaction(t));
-      return valid ? data : null;
-    } catch (e) {
-      // Storage unavailable or corrupt JSON: fall back to fresh data.
-      return null;
-    }
-  }
-
   private writeStored(data: StoredMockData): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
       // Storage unavailable or full; keep the data in memory only.
     }
-  }
-
-  private isTransaction(t: any): boolean {
-    return !!t
-      && typeof t.id === 'string'
-      && typeof t.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.date)
-      && typeof t.description === 'string'
-      && typeof t.category === 'string'
-      && typeof t.amount === 'number' && isFinite(t.amount) && t.amount > 0
-      && (t.type === 'income' || t.type === 'expense');
   }
 
   private sortNewestFirst(transactions: Transaction[]): Transaction[] {

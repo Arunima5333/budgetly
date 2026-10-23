@@ -5,9 +5,9 @@
     <div class="min-w-0">
       <h1 class="h3 mb-1">Budgets</h1>
       <p class="text-body-secondary small mb-0">
-        <ng-container *ngIf="view.isNewMonth"><ng-container *ngIf="view.limits.length; else noCategoriesYet">{{ view.totalBudget | inr }} for {{ view.monthName }}<span class="meta-dot" aria-hidden="true"></span>carried over from {{ view.previousMonthName }}</ng-container><ng-template #noCategoriesYet>No categories yet for {{ view.monthName }}</ng-template></ng-container>
-        <ng-container *ngIf="!view.isNewMonth && (view.canAddCategory || view.hasTransactions)">{{ view.totalBudget | inr }} budgeted for {{ view.canAddCategory ? view.monthName : view.monthYear }}<ng-container *ngIf="view.incomePercent !== null"><span class="meta-dot" aria-hidden="true"></span>{{ view.incomePercent }}% of your income</ng-container></ng-container>
-        <ng-container *ngIf="!view.canAddCategory && !view.hasTransactions">Nothing spent in {{ view.monthYear }}<span class="meta-dot" aria-hidden="true"></span>no income recorded</ng-container>
+        <ng-container *ngIf="view.isNewMonth"><ng-container *ngIf="view.limits.length; else noCategoriesYet">{{ view.totalBudget | inr }} for {{ view.monthName }}<span class="meta-dot" aria-hidden="true"></span><span class="text-nowrap">carried over from {{ view.previousMonthName }}</span></ng-container><ng-template #noCategoriesYet>No categories yet for {{ view.monthName }}</ng-template></ng-container>
+        <ng-container *ngIf="!view.isNewMonth && (view.canAddCategory || view.hasTransactions)">{{ view.totalBudget | inr }} budgeted for {{ view.canAddCategory ? view.monthName : view.monthYear }}<ng-container *ngIf="view.incomePercent !== null"><span class="meta-dot" aria-hidden="true"></span><span class="text-nowrap">{{ view.incomePercent }}% of your income</span></ng-container></ng-container>
+        <ng-container *ngIf="!view.canAddCategory && !view.hasTransactions">Nothing spent in {{ view.monthYear }}<span class="meta-dot" aria-hidden="true"></span><span class="text-nowrap">no income recorded</span></ng-container>
       </p>
     </div>
 
@@ -31,8 +31,8 @@
 
         <ng-container *ngIf="view.attention.length; else allOnTrack">
           <p class="text-body-secondary small mb-0" [ngPlural]="view.attention.length">
-            <ng-template ngPluralCase="=1">1 category is at or over its limit.</ng-template>
-            <ng-template ngPluralCase="other">{{ view.attention.length }} categories are at or over their limit.</ng-template>
+            <ng-template ngPluralCase="=1">1 category is at or near its limit.</ng-template>
+            <ng-template ngPluralCase="other">{{ view.attention.length }} categories are at or near their limit.</ng-template>
           </p>
 
           <ul class="attention-list list-unstyled mb-0 mt-3">
@@ -101,7 +101,9 @@
                    [attr.aria-label]="'View ' + budget.name + ' transactions'">
                   <i class="bi bi-list-ul" aria-hidden="true"></i>
                 </a>
-                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + budget.name + ' budget'"
+                <!-- Past months are read-only: no edit pencil. -->
+                <button type="button" class="icon-btn" *ngIf="view.canAddCategory" [attr.data-category]="budget.name"
+                        [attr.aria-label]="'Edit ' + budget.name + ' budget'"
                         (click)="editCategory(budget.name)">
                   <i class="bi bi-pencil" aria-hidden="true"></i>
                 </button>
@@ -139,7 +141,9 @@
                    [attr.aria-label]="'View ' + budget.name + ' transactions'">
                   <i class="bi bi-list-ul" aria-hidden="true"></i>
                 </a>
-                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + budget.name + ' budget'"
+                <!-- Past months are read-only: no edit pencil. -->
+                <button type="button" class="icon-btn" *ngIf="view.canAddCategory" [attr.data-category]="budget.name"
+                        [attr.aria-label]="'Edit ' + budget.name + ' budget'"
                         (click)="editCategory(budget.name)">
                   <i class="bi bi-pencil" aria-hidden="true"></i>
                 </button>
@@ -189,7 +193,8 @@
                 </td>
                 <td class="text-end limit-amount">{{ category.monthlyLimit | inr }}</td>
                 <td class="text-end">
-                  <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + category.name + ' budget'"
+                  <button type="button" class="icon-btn" [attr.data-category]="category.name"
+                          [attr.aria-label]="'Edit ' + category.name + ' budget'"
                           (click)="editCategory(category.name)">
                     <i class="bi bi-pencil" aria-hidden="true"></i>
                   </button>

@@ -17,6 +17,8 @@
   --bs-link-hover-color-rgb: 55, 48, 163;
 
   --bs-focus-ring-color: rgba(67, 56, 202, 0.25);
+  /* Keyboard focus ring: the accent (light) / the lighter accent text colour (dark), via the link colour. */
+  --focus-ring: var(--bs-link-color);
 
   /* App surfaces: grey page, white cards/sidebar. */
   --app-page-bg: #f5f6f8;
@@ -52,8 +54,8 @@
   /* Thin light divider lines (e.g. Budgets limits list); also the neutral button border. */
   --hairline: #e3e6eb;
   /* Neutral outlined button (.btn-outline-neutral). */
-  --btn-neutral-border: var(--hairline);
-  --btn-neutral-border-hover: #cfd4dc;
+  /* Stronger gray for outlines that must stand out (>= 3:1): "No data" bars, "Review budgets" border. */
+  --border-strong: #868d99;
   --btn-neutral-fg: #141821;
 
   /* Income amounts in lists: same green as the "On track" badge text, in both themes. */
@@ -72,6 +74,7 @@
   --bs-link-hover-color-rgb: 199, 210, 254;
 
   --bs-focus-ring-color: rgba(129, 140, 248, 0.35);
+  --focus-ring: var(--bs-link-color);
 
   --app-page-bg: #0e1015;
   --app-page-bg-rgb: 14, 16, 21;
@@ -95,8 +98,7 @@
   --view-only-fg: #a0a7b4;
   --icon-accent: #aeb6ff;
   --hairline: #272b35;
-  --btn-neutral-border: var(--hairline);
-  --btn-neutral-border-hover: #3a3f4b;
+  --border-strong: #6b7280;
   --btn-neutral-fg: #eceef2;
 }
 
@@ -242,29 +244,25 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /*
- * Neutral outlined button: transparent, thin neutral border, normal (not accent) text, semi-bold.
+ * Neutral outlined button: transparent, thin --border-strong border, normal (not accent) text, semi-bold.
  * Combine with .btn-add for the 42px "+ Add" size (e.g. Overview "Review budgets").
  */
 .btn-outline-neutral {
   --bs-btn-color: var(--btn-neutral-fg);
   --bs-btn-bg: transparent;
-  --bs-btn-border-color: var(--btn-neutral-border);
+  --bs-btn-border-color: var(--border-strong);
   --bs-btn-hover-color: var(--btn-neutral-fg);
   --bs-btn-hover-bg: var(--bs-tertiary-bg);
-  --bs-btn-hover-border-color: var(--btn-neutral-border-hover);
+  --bs-btn-hover-border-color: var(--border-strong);
   --bs-btn-active-color: var(--btn-neutral-fg);
   --bs-btn-active-bg: var(--bs-tertiary-bg);
-  --bs-btn-active-border-color: var(--btn-neutral-border-hover);
+  --bs-btn-active-border-color: var(--border-strong);
   --bs-btn-disabled-color: var(--btn-neutral-fg);
   --bs-btn-disabled-bg: transparent;
-  --bs-btn-disabled-border-color: var(--btn-neutral-border);
+  --bs-btn-disabled-border-color: var(--border-strong);
   --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
   --bs-btn-font-weight: 600;
   color: var(--bs-btn-color); /* .btn-add sets white text */
-}
-
-.btn-outline-neutral:focus-visible {
-  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
 }
 
 /* Secondary "+ Add …" button (e.g. Budgets "+ Add category"): use with `btn btn-add`. */
@@ -282,11 +280,10 @@ h1, h2, h3, h4, h5, h6,
   color: var(--bs-body-color); /* .btn-add sets white text */
 }
 
-.form-control:focus,
-.form-select:focus,
+/* Bootstrap's focus glow on checkboxes/switches is replaced by the ring below (keyboard only). */
 .form-check-input:focus {
-  border-color: #818cf8;
-  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+  border-color: var(--bs-border-color);
+  box-shadow: none;
 }
 
 .form-check-input:checked {
@@ -421,14 +418,6 @@ h1, h2, h3, h4, h5, h6,
   color: var(--bs-body-color);
 }
 
-.icon-btn:focus {
-  outline: 0;
-}
-
-.icon-btn:focus-visible {
-  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
-}
-
 /* Field-style filter controls (Transactions search + Type/Sort, Reports Compare): 44px, surface, rounded. */
 .filter-control {
   height: 44px;
@@ -449,14 +438,9 @@ h1, h2, h3, h4, h5, h6,
   text-align: left;
 }
 
-.filter-select:focus {
-  outline: 0;
-}
-
-.filter-select:focus-visible,
+/* Open menu: the field border stays highlighted (the ring itself comes from the global focus rules). */
 .filter-select[aria-expanded="true"] {
-  border-color: #818cf8; /* same as the global .form-control:focus border */
-  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+  border-color: var(--focus-ring);
 }
 
 .filter-menu {
@@ -473,4 +457,72 @@ h1, h2, h3, h4, h5, h6,
 
 .dropdown-item.active .dropdown-item-desc {
   color: rgba(255, 255, 255, 0.8);
+}
+
+/*
+ * Keyboard focus ring (app-wide): a solid 2px outline with a 2px gap in --focus-ring (the accent; the lighter
+ * accent in dark mode). Buttons, links, chips and menu items show it on :focus-visible (keyboard, not mouse
+ * clicks); text inputs and selects on :focus, like browsers do. Bootstrap's focus glows are switched off so
+ * there is never a double ring. An element whose outer ring could be clipped sets --focus-ring-offset
+ * (negative = inside its edge).
+ */
+.btn {
+  --bs-btn-focus-box-shadow: none;
+}
+
+.btn-close {
+  --bs-btn-close-focus-shadow: none;
+}
+
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+[tabindex="0"]:focus-visible,
+.btn:focus-visible,
+.btn-check:focus-visible + .btn,
+.btn-close:focus-visible,
+.nav-link:focus-visible,
+.dropdown-item:focus-visible,
+.form-check-input:focus-visible {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: var(--focus-ring-offset, 2px) !important;
+  box-shadow: none !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+.filter-control:focus,
+textarea:focus {
+  border-color: var(--focus-ring);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* Menu items fill the menu's width: the ring sits just inside them. */
+.dropdown-item {
+  --focus-ring-offset: -2px;
+}
+
+/* The selected item has the accent background, so its ring is white and drawn further in (a sliver of accent
+   stays between the item's edge and the ring). */
+.dropdown-item.active {
+  --focus-ring: #fff;
+  --focus-ring-offset: -4px;
+}
+
+/* The calendar button inside date inputs gets the app's ring instead of Chrome's default one. Chrome ignores
+   :focus/:focus-visible on this pseudo-element but still draws its own outline only while the button is focused,
+   so setting the outline's colour, width and offset unconditionally restyles that ring without showing it at rest. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  border-radius: var(--bs-border-radius-sm);
+  outline-color: var(--focus-ring);
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+/* Invalid fields keep their red border; the focus ring replaces Bootstrap's red glow. */
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+  box-shadow: none;
 }

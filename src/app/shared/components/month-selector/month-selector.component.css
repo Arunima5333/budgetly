@@ -29,14 +29,6 @@
   background-color: var(--bs-tertiary-bg);
 }
 
-.month-toggle:focus {
-  outline: none;
-}
-
-.month-toggle:focus-visible {
-  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
-}
-
 .month-label {
   font-weight: 600;
   white-space: nowrap;
@@ -67,7 +59,7 @@
   min-width: 0;
 }
 
-/* Month buttons: borderless and transparent, tertiary tint on hover, accent focus ring. */
+/* Month buttons: borderless and transparent, tertiary tint on hover (focus ring from styles.css). */
 .picker-month {
   --bs-btn-color: var(--bs-body-color);
   --bs-btn-bg: transparent;
@@ -130,13 +122,8 @@
   cursor: default;
 }
 
-.month-arrow:focus {
-  outline: none;
-}
-
 .month-arrow:focus-visible {
   color: var(--bs-body-color);
-  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
 }
 
 @media (min-width: 768px) {

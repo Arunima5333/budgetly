@@ -125,7 +125,8 @@
 </app-empty-state>
 
 <!-- Current month with no transactions yet: only this card (same spacing as the other new-month cards). -->
-<app-empty-state *ngIf="isCurrentEmpty" [heading]="'No report for ' + monthName + ' yet'" [hasActions]="true" [compactMobile]="true"
+<!-- No "View … report" button at the earliest selectable month (January 2020, or the month of a pre-2020 dev date). -->
+<app-empty-state *ngIf="isCurrentEmpty" [heading]="'No report for ' + monthName + ' yet'" [hasActions]="canViewPrevious" [compactMobile]="true"
                  text="Reports fill in as you add transactions. Last month's report is still available.">
   <svg emptyIcon class="icon-accent" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
   <!-- Same as "Review budgets" on the Overview new-month card: full width below sm, centred from sm up. -->

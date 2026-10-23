@@ -56,14 +56,6 @@
   color: var(--bs-body-color);
 }
 
-.search-clear:focus {
-  outline: 0;
-}
-
-.search-clear:focus-visible {
-  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
-}
-
 /* Category pills: wrap on wider screens, one sideways-scrolling row on mobile. */
 .pill-row {
   display: flex;
@@ -175,15 +167,56 @@
   font-weight: 600;
 }
 
-/* Long descriptions truncate at this width instead of widening the table. */
+/*
+ * Long descriptions and category names truncate (title tooltip) at these caps instead of widening the table.
+ * The caps step down so the worst case (24-char category, long description, −₹99,99,999, Actions) still fits
+ * the card at every width from 768 up; Date, Amount and Actions keep their natural width. Normal values stay
+ * under the caps, so the even-gap column sizing below is unchanged for them.
+ */
 .cell-description .text-truncate {
   max-width: 15rem;
 }
 
-/* Narrow desktop (992-1199px, sidebar visible) leaves the least table width: tighter cap. */
+.category-cell {
+  display: flex;
+  align-items: center;
+  max-width: 12rem;
+}
+
+.category-name {
+  min-width: 0;
+}
+
+/* 1200-1399px with the sidebar. */
+@media (max-width: 1399.98px) {
+  .cell-description .text-truncate {
+    max-width: 13rem;
+  }
+
+  .category-cell {
+    max-width: 10.5rem;
+  }
+}
+
+/* 992-1199px with the sidebar: the least room for the table. */
 @media (max-width: 1199.98px) {
   .cell-description .text-truncate {
-    max-width: 12rem;
+    max-width: 8rem;
+  }
+
+  .category-cell {
+    max-width: 8rem;
+  }
+}
+
+/* 768-991px: no sidebar, a little more room again. */
+@media (max-width: 991.98px) {
+  .cell-description .text-truncate {
+    max-width: 9.5rem;
+  }
+
+  .category-cell {
+    max-width: 8.5rem;
   }
 }
 
@@ -193,6 +226,7 @@
 
 .category-dot {
   display: inline-block;
+  flex-shrink: 0;
   width: 8px;
   height: 8px;
   margin-right: 0.5rem;
@@ -219,7 +253,8 @@
  * Even gaps between columns: every column is sized to its content (tiny % widths), and Chrome
  * hands the table's spare width to percentage columns in proportion to their percentages.
  * Each gap gets one share: Category and Amount get half a share each because they share one gap
- * (Amount is right-aligned, so its spare room sits on its left).
+ * (Amount is right-aligned, so its spare room sits on its left). Without the Actions column
+ * (past months) the same shares give Date | Description | Category | Amount three even gaps.
  */
 .col-date,
 .col-description,
@@ -232,7 +267,7 @@
   width: 0.5%;
 }
 
-/* Icon-only row actions: muted, 32px hit area, tertiary hover, accent focus ring. */
+/* Icon-only row actions: muted, 32px hit area, tertiary hover (focus ring from styles.css). */
 .row-action {
   display: inline-flex;
   align-items: center;
@@ -251,14 +286,6 @@
   color: var(--bs-body-color);
 }
 
-.row-action:focus {
-  outline: 0;
-}
-
-.row-action:focus-visible {
-  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
-}
-
 /* Mobile list: shared .txn-* row styles (styles.css); description semi-bold here. */
 .txn-mobile-list {
   padding: 0 1.25rem;
@@ -270,7 +297,7 @@
 }
 
 /* Full-row edit button: reset to look like plain row content. It extends 0.5rem past the
-   text on each side so the hover tint and inset focus ring have room inside the card. */
+   text on each side so the hover tint and the (inset) focus ring have room inside the card. */
 .txn-row-button {
   width: calc(100% + 1rem);
   margin: 0 -0.5rem;
@@ -287,12 +314,14 @@
   background-color: rgba(var(--bs-emphasis-color-rgb), 0.035);
 }
 
-.txn-row-button:focus {
-  outline: 0;
+/* The row sits flush inside the card list: its focus ring is drawn just inside the row. */
+.txn-row-button {
+  --focus-ring-offset: -2px;
 }
 
-.txn-row-button:focus-visible {
-  box-shadow: inset 0 0 0 0.2rem var(--bs-focus-ring-color);
+/* Past months: the same row, as plain content (no hover or focus). */
+.txn-row-static {
+  padding: 0.5rem 0;
 }
 
 .txn-mobile-list .txn-description {

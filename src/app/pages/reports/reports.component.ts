@@ -4,6 +4,7 @@ import { BehaviorSubject, combineLatest, Subscription } from 'rxjs';
 import { DataService } from '../../core/services/data.service';
 import { TodayService } from '../../core/services/today.service';
 import { formatMonthYear } from '../../core/utils/date-format';
+import { monthIndex } from '../../core/utils/month-range';
 import { computeInsights, Insight } from '../../core/utils/insights';
 import { roundPercentages } from '../../core/utils/percentages';
 import { formatInr } from '../../shared/pipes/inr.pipe';
@@ -95,6 +96,8 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Long name of the selected month / the month before it, e.g. 'November' / 'October'. */
   monthName = '';
   previousMonthName = '';
+  /** False at the earliest selectable month: there is no previous month to view. */
+  canViewPrevious = true;
   /** Categories with spending this month, highest first. */
   slices: SpendingSlice[] = [];
   totalSpent = 0;
@@ -209,6 +212,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe(([selected]) => {
         this.monthLabel = formatMonthYear(selected.year, selected.month);
         this.isPastMonth = !this.today.isCurrentMonth(selected);
+        this.canViewPrevious = monthIndex(selected) > monthIndex(this.dataService.getMinSelectableMonth());
         this.hasTransactions = this.dataService.getTransactionsForMonth(selected.year, selected.month).length > 0;
         this.monthName = new Date(selected.year, selected.month - 1, 1).toLocaleDateString('en-US', { month: 'long' });
         // Month 0 rolls back to December of the previous year.

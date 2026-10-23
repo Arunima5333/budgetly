@@ -7,7 +7,7 @@
   <div class="min-w-0 me-auto">
     <h1 class="h3 mb-1">Transactions</h1>
     <p class="text-body-secondary small mb-0">
-      {{ view.monthLabel }}<span class="meta-dot" aria-hidden="true"></span><span aria-live="polite" [ngPlural]="view.rows.length">
+      {{ view.monthLabel }}<span class="meta-dot" aria-hidden="true"></span><span class="text-nowrap" aria-live="polite" [ngPlural]="view.rows.length">
         <ng-template ngPluralCase="=1">1 transaction</ng-template>
         <ng-template ngPluralCase="other">{{ view.rows.length }} transactions</ng-template>
       </span>
@@ -86,7 +86,7 @@
   </div>
 
   <!-- Category pills -->
-  <div class="pill-row mt-3" role="group" aria-label="Filter by category">
+  <div class="pill-row mt-3" role="group" aria-label="Filter by category" (focusin)="onPillFocus($event)">
     <button type="button" class="btn btn-sm rounded-pill fw-semibold filter-pill"
             [ngClass]="!filters.category ? 'btn-primary' : 'filter-pill-idle'"
             [attr.aria-pressed]="!filters.category" (click)="setCategory(null)">All</button>
@@ -98,9 +98,9 @@
 
 <section #resultsCard class="app-card results-card mt-4" aria-label="Transactions" tabindex="-1">
   <ng-container *ngIf="view.rows.length; else emptyState">
-    <!-- md and up: table -->
+    <!-- md and up: table. Past months are read-only: no Actions column (4 columns) and no row hover. -->
     <div class="d-none d-md-block">
-      <table class="table table-hover align-middle mb-0 txn-table">
+      <table class="table align-middle mb-0 txn-table" [class.table-hover]="view.canAdd">
         <caption class="visually-hidden">Transactions for {{ view.monthLabel }}</caption>
         <thead>
           <tr>
@@ -108,7 +108,7 @@
             <th scope="col" class="col-description">Description</th>
             <th scope="col" class="col-category">Category</th>
             <th scope="col" class="col-amount text-end">Amount</th>
-            <th scope="col" class="col-actions text-end">Actions</th>
+            <th scope="col" class="col-actions text-end" *ngIf="view.canAdd">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -118,10 +118,13 @@
               <div class="text-truncate" [title]="row.description">{{ row.description }}</div>
             </td>
             <td class="cell-category">
-              <span class="category-dot" [style.background-color]="row.color" aria-hidden="true"></span>{{ row.category }}
+              <div class="category-cell">
+                <span class="category-dot" [style.background-color]="row.color" aria-hidden="true"></span>
+                <span class="category-name text-truncate" [title]="row.category">{{ row.category }}</span>
+              </div>
             </td>
             <td class="cell-amount text-end" [class.is-income]="row.isIncome">{{ row.sign }}{{ row.amount | inr }}</td>
-            <td class="cell-actions text-end">
+            <td class="cell-actions text-end" *ngIf="view.canAdd">
               <button type="button" class="row-action" [attr.data-edit-id]="row.id" [attr.aria-label]="'Edit ' + row.description"
                       (click)="editTransaction(row)">
                 <i class="bi bi-pencil" aria-hidden="true"></i>
@@ -136,21 +139,30 @@
       </table>
     </div>
 
-    <!-- Below md: same rows as the Overview "Recent transactions" card -->
+    <!-- Below md: same rows as the Overview "Recent transactions" card. Current month: the whole row is the
+         edit button. Past months (read-only): plain list items, not buttons or tab stops. -->
     <ul class="txn-list txn-mobile-list list-unstyled mb-0 d-md-none">
       <li *ngFor="let row of view.rows; trackBy: trackById">
-        <!-- The whole row is the edit button on mobile. -->
         <button type="button" class="txn-row-button d-flex align-items-center gap-3 text-start" [attr.data-edit-id]="row.id"
-                [attr.aria-label]="'Edit ' + row.description" (click)="editTransaction(row)">
-          <span class="txn-badge" [style.background-color]="row.color" aria-hidden="true">{{ row.letter }}</span>
-          <span class="txn-text">
-            <span class="txn-description d-block">{{ row.description }}</span>
-            <span class="txn-meta d-block">{{ row.category }} · {{ row.dateLabel }}</span>
-          </span>
-          <span class="txn-amount" [class.is-income]="row.isIncome">{{ row.sign }}{{ row.amount | inr }}</span>
+                [attr.aria-label]="'Edit ' + row.description" (click)="editTransaction(row)" *ngIf="view.canAdd; else readOnlyRow">
+          <ng-container *ngTemplateOutlet="rowContent; context: { $implicit: row }"></ng-container>
         </button>
+        <ng-template #readOnlyRow>
+          <div class="txn-row-static d-flex align-items-center gap-3">
+            <ng-container *ngTemplateOutlet="rowContent; context: { $implicit: row }"></ng-container>
+          </div>
+        </ng-template>
       </li>
     </ul>
+
+    <ng-template #rowContent let-row>
+      <span class="txn-badge" [style.background-color]="row.color" aria-hidden="true">{{ row.letter }}</span>
+      <span class="txn-text">
+        <span class="txn-description d-block">{{ row.description }}</span>
+        <span class="txn-meta d-block">{{ row.category }} · {{ row.dateLabel }}</span>
+      </span>
+      <span class="txn-amount" [class.is-income]="row.isIncome">{{ row.sign }}{{ row.amount | inr }}</span>
+    </ng-template>
   </ng-container>
 
   <ng-template #emptyState>
@@ -160,8 +172,8 @@
   </ng-template>
 </section>
 
-<!-- Mobile only, and only when there are rows to tap (not for the empty states). -->
-<p class="small text-body-secondary text-center mt-3 mb-0 d-md-none" *ngIf="view.rows.length">Tap a transaction to edit or delete it.</p>
+<!-- Mobile only, and only when there are rows to tap (current month; not for the empty states or past months). -->
+<p class="small text-body-secondary text-center mt-3 mb-0 d-md-none" *ngIf="view.rows.length && view.canAdd">Tap a transaction to edit or delete it.</p>
 </ng-container>
 
 <ng-template #monthEmpty>

@@ -1,3 +1,4 @@
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 
@@ -9,10 +10,10 @@ describe('SidebarComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [ RouterTestingModule ],
-      declarations: [ SidebarComponent ]
-    })
-    .compileComponents();
+      imports: [RouterTestingModule],
+      declarations: [SidebarComponent],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).compileComponents();
   }));
 
   beforeEach(() => {
@@ -23,5 +24,13 @@ describe('SidebarComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should show the brand and the four page links', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Budgetly');
+    const links = Array.prototype.map.call(el.querySelectorAll('a.sidebar-link'), (a: HTMLElement) => a.textContent.trim());
+    expect(links.join(',')).toContain('Overview');
+    expect(links.join(',')).toContain('Reports');
   });
 });

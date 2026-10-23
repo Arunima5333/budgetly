@@ -1,16 +1,21 @@
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 
+import { InrPipe } from '../../shared/pipes/inr.pipe';
 import { TransactionsComponent } from './transactions.component';
 
+/** Shallow render: child components are not declared (NO_ERRORS_SCHEMA); the real services run on localStorage. */
 describe('TransactionsComponent', () => {
   let component: TransactionsComponent;
   let fixture: ComponentFixture<TransactionsComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ TransactionsComponent ]
-    })
-    .compileComponents();
+      imports: [RouterTestingModule],
+      declarations: [TransactionsComponent, InrPipe],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).compileComponents();
   }));
 
   beforeEach(() => {

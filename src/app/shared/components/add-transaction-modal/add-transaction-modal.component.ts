@@ -68,14 +68,19 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
   private resetWhenHidden = false;
   /** Element focused when the modal opened (opened from code, so Bootstrap doesn't restore focus itself). */
   private returnFocusTo: HTMLElement | null = null;
+  /**
+   * Set once a valid save has started; further clicks/Enter are ignored until the modal is opened again,
+   * so a double-click saves (and alerts) once. Validation failures never set it.
+   */
+  private busy = false;
 
   /**
-   * Add mode only: the date must be in the current month, up to today (typed dates can bypass the
-   * input's min/max). Edit mode accepts any date so past transactions stay editable.
+   * Add and edit: the date must be in the current month, up to today (typed dates can bypass the
+   * input's min/max). Editing only happens in the current month (past months are read-only).
    */
-  private readonly addDateInRange = (control: AbstractControl): ValidationErrors | null => {
+  private readonly dateInRange = (control: AbstractControl): ValidationErrors | null => {
     const value: string = control.value;
-    if (this.mode !== 'add' || !value) {
+    if (!value) {
       return null;
     }
     return value < this.today.firstOfMonthIso() || value > this.today.todayIso() ? { outsideCurrentMonth: true } : null;
@@ -88,13 +93,21 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
 
   private readonly onHidden = () => {
     this.isShown = false;
+    this.busy = false;
     if (this.resetWhenHidden) {
       this.resetWhenHidden = false;
       this.resetForm();
     }
-    // Restore focus to the trigger (e.g. "+ Add transaction" or a row's pencil) if it still exists.
+    // Restore focus to the trigger (e.g. "+ Add transaction" or a row's pencil) if it still exists. When it has
+    // gone (the first transaction of an empty month swaps the empty-state card for the normal layout), use the
+    // page header's "+ Add transaction", else the month selector.
     if (this.returnFocusTo && document.body.contains(this.returnFocusTo)) {
       this.returnFocusTo.focus();
+    } else {
+      const fallback = this.visible('main header .btn-add') || this.visible('main .month-toggle');
+      if (fallback) {
+        fallback.focus();
+      }
     }
     this.returnFocusTo = null;
     if (this.pendingDelete) {
@@ -113,7 +126,7 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
       type: ['expense'],
       amount: [null, [Validators.required, positiveAmount]],
       category: [null, Validators.required],
-      date: [this.today.todayIso(), [Validators.required, this.addDateInRange]],
+      date: [this.today.todayIso(), [Validators.required, this.dateInRange]],
       note: ['']
     });
 
@@ -164,13 +177,13 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
       : 'Pick a date.';
   }
 
-  /** Date input limits in add mode (1st of this month … today); none in edit mode. */
-  get dateMin(): string | null {
-    return this.mode === 'add' ? this.today.firstOfMonthIso() : null;
+  /** Date input limits in add AND edit mode: 1st of the current month … today (TodayService). */
+  get dateMin(): string {
+    return this.today.firstOfMonthIso();
   }
 
-  get dateMax(): string | null {
-    return this.mode === 'add' ? this.today.todayIso() : null;
+  get dateMax(): string {
+    return this.today.todayIso();
   }
 
   ngAfterViewInit() {
@@ -253,10 +266,14 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
   }
 
   save() {
+    if (this.busy) {
+      return;
+    }
     this.submitted = true;
     if (this.form.invalid) {
       return;
     }
+    this.busy = true;
     const value = this.form.value;
     const input = {
       type: value.type as TransactionType,
@@ -268,8 +285,11 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
 
     if (this.mode === 'edit') {
       // Close whether it saved or the transaction no longer exists (null): nothing is left to edit.
-      this.dataService.updateTransaction(this.editingId, input);
+      const updated = this.dataService.updateTransaction(this.editingId, input);
       this.close();
+      if (updated) {
+        this.alertService.show('Transaction updated');
+      }
       return;
     }
 
@@ -285,7 +305,14 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
     return this.dataService.getCategories().map(c => ({ name: c.name, color: c.color }));
   }
 
+  /** First visible element matching `selector` in the page, or null. */
+  private visible(selector: string): HTMLElement | null {
+    const matches = document.querySelectorAll(selector);
+    return Array.prototype.filter.call(matches, (el: HTMLElement) => el.offsetParent !== null)[0] || null;
+  }
+
   private show() {
+    this.busy = false;
     const active = document.activeElement as HTMLElement;
     this.returnFocusTo = active && active !== document.body ? active : null;
     if (this.modal) {

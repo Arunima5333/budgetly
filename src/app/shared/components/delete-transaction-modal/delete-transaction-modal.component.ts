@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, ElementRef, EventEmitter, OnDestroy, Output, ViewChild } from '@angular/core';
 
 import { Transaction } from '../../../core/models/transaction.model';
+import { AlertService } from '../../../core/services/alert.service';
 import { DataService } from '../../../core/services/data.service';
 import { formatDayMonth } from '../../../core/utils/date-format';
 
@@ -45,6 +46,8 @@ export class DeleteTransactionModalComponent implements AfterViewInit, OnDestroy
   private modal: any;
   private isShown = false;
   private wasDeleted = false;
+  /** Set once Delete is confirmed: repeat clicks are ignored until the dialog opens again. */
+  private busy = false;
   private returnFocusTo: HTMLElement | null = null;
 
   private readonly onShown = () => {
@@ -57,6 +60,7 @@ export class DeleteTransactionModalComponent implements AfterViewInit, OnDestroy
 
   private readonly onHidden = () => {
     this.isShown = false;
+    this.busy = false;
     const transaction = this.transaction;
     if (this.wasDeleted) {
       this.deleted.emit(transaction);
@@ -69,7 +73,7 @@ export class DeleteTransactionModalComponent implements AfterViewInit, OnDestroy
     this.cancelled.emit(transaction);
   }
 
-  constructor(private dataService: DataService) { }
+  constructor(private dataService: DataService, private alertService: AlertService) { }
 
   ngAfterViewInit() {
     if (typeof bootstrap === 'undefined') {
@@ -101,6 +105,7 @@ export class DeleteTransactionModalComponent implements AfterViewInit, OnDestroy
     this.transaction = transaction;
     this.dateLabel = formatDayMonth(transaction.date);
     this.wasDeleted = false;
+    this.busy = false;
     const active = document.activeElement as HTMLElement;
     this.returnFocusTo = active && active !== document.body ? active : null;
     if (this.modal) {
@@ -109,10 +114,14 @@ export class DeleteTransactionModalComponent implements AfterViewInit, OnDestroy
   }
 
   confirmDelete() {
-    if (!this.transaction) {
+    if (!this.transaction || this.busy) {
       return;
     }
+    this.busy = true;
     this.wasDeleted = this.dataService.deleteTransaction(this.transaction.id);
+    if (this.wasDeleted) {
+      this.alertService.show('Transaction deleted');
+    }
     if (this.modal) {
       this.modal.hide();
     }

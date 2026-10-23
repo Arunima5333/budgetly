@@ -77,8 +77,10 @@
   box-shadow: 0 0 0 2px var(--app-surface), 0 0 0 4px var(--bs-body-color);
 }
 
+/* Keyboard focus: the app's focus ring, drawn outside the selection ring (which reaches 4px out). */
 .btn-check:focus-visible + .color-swatch {
-  box-shadow: 0 0 0 2px var(--app-surface), 0 0 0 4px var(--bs-link-color), 0 0 0 8px var(--bs-focus-ring-color);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 6px;
 }
 
 /* Preview of the new row: dashed box, empty 6px bar like the Overview budget card. */
