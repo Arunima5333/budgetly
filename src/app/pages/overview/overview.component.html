@@ -11,6 +11,15 @@
     </p>
   </div>
 
+  <!-- Converted currencies only. Below md it sits under the subtitle (above the month selector); from md it wraps
+       to its own line under the title block, so the title row keeps its alignment. -->
+  <div class="rate-note-row" *ngIf="rateNote$ | async as rate">
+    <p class="rate-note d-inline-flex align-items-start gap-1 rounded-pill mb-0">
+      <i class="bi bi-info-circle" aria-hidden="true"></i>
+      <span>Amounts shown in {{ rate.symbol }} {{ rate.code }} at approximate rates</span>
+    </p>
+  </div>
+
   <div class="header-actions d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 gap-md-3">
     <app-view-only-badge class="order-1 order-md-0 align-self-start align-self-md-auto" *ngIf="!state.isCurrent"></app-view-only-badge>
     <app-month-selector></app-month-selector>
@@ -28,7 +37,7 @@
     <div class="col-6 col-md-4">
       <div class="summary-card h-100">
         <div class="summary-label">Income</div>
-        <div class="summary-value">{{ summary.income | inr }}</div>
+        <div class="summary-value">{{ summary.income | money }}</div>
         <div class="summary-caption d-none d-md-block" [ngPlural]="summary.incomeCount">
           <ng-template ngPluralCase="=0">No payments this month</ng-template>
           <ng-template ngPluralCase="=1">1 payment this month</ng-template>
@@ -40,8 +49,8 @@
     <div class="col-6 col-md-4">
       <div class="summary-card h-100">
         <div class="summary-label">Spent</div>
-        <div class="summary-value">{{ summary.spent | inr }}</div>
-        <div class="summary-caption d-none d-md-block">of {{ summary.totalBudget | inr }} total budget</div>
+        <div class="summary-value">{{ summary.spent | money }}</div>
+        <div class="summary-caption d-none d-md-block">of {{ summary.totalBudget | money }} total budget</div>
       </div>
     </div>
 
@@ -50,11 +59,11 @@
         <div class="d-flex flex-wrap align-items-baseline justify-content-between column-gap-2">
           <div class="summary-label">Left to spend</div>
           <!-- Mobile only: replaces the hidden Spent caption. -->
-          <span class="summary-caption d-md-none">of {{ summary.totalBudget | inr }}</span>
+          <span class="summary-caption d-md-none">of {{ summary.totalBudget | money }}</span>
         </div>
         <div class="summary-value summary-value-left">
-          <ng-container *ngIf="!summary.isOverBudget">{{ summary.left | inr }}</ng-container>
-          <ng-container *ngIf="summary.isOverBudget">Over by {{ summary.overBy | inr }}</ng-container>
+          <ng-container *ngIf="!summary.isOverBudget">{{ summary.left | money }}</ng-container>
+          <ng-container *ngIf="summary.isOverBudget">Over by {{ summary.overBy | money }}</ng-container>
         </div>
         <div class="progress budget-bar" role="progressbar"
              [attr.aria-label]="'Spent ' + summary.spentPercent + '% of total budget'"
@@ -81,12 +90,12 @@
                 <span class="category-name">{{ budget.name }}</span>
               </div>
               <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 ms-auto">
-                <span class="category-amount d-none d-md-inline">{{ budget.spent | inr }} of {{ budget.limit | inr }}</span>
+                <span class="category-amount d-none d-md-inline">{{ budget.spent | money }} of {{ budget.limit | money }}</span>
                 <span class="status-badge" [ngClass]="'status-' + budget.status" [ngSwitch]="budget.status">
                   <ng-container *ngSwitchCase="'on-track'">On track</ng-container>
                   <ng-container *ngSwitchCase="'close'">Close to limit</ng-container>
                   <ng-container *ngSwitchCase="'at-limit'">At limit</ng-container>
-                  <ng-container *ngSwitchCase="'over'">Over by {{ budget.overBy | inr }}</ng-container>
+                  <ng-container *ngSwitchCase="'over'">Over by {{ budget.overBy | money }}</ng-container>
                 </span>
               </div>
             </div>
@@ -96,7 +105,7 @@
               <div class="progress-bar" [ngClass]="'bar-' + budget.status" [style.width.%]="budget.barPercent"></div>
             </div>
             <!-- Mobile only: the amount moves below the bar. -->
-            <div class="category-amount category-amount-below d-md-none">{{ budget.spent | inr }} of {{ budget.limit | inr }}</div>
+            <div class="category-amount category-amount-below d-md-none">{{ budget.spent | money }} of {{ budget.limit | money }}</div>
           </li>
         </ul>
       </div>
@@ -116,7 +125,7 @@
               <div class="txn-description">{{ t.description }}</div>
               <div class="txn-meta">{{ t.category }} · {{ t.dateLabel }}</div>
             </div>
-            <span class="txn-amount" [class.is-income]="t.isIncome">{{ t.sign }}{{ t.amount | inr }}</span>
+            <span class="txn-amount" [class.is-income]="t.isIncome">{{ t.amount | money:t.sign }}</span>
           </li>
         </ul>
 
@@ -139,7 +148,7 @@
   <app-empty-state *ngIf="state.isCurrent" [heading]="'Fresh start for ' + state.monthName" [hasActions]="true"
                    [compactMobile]="true">
     <svg emptyIcon class="icon-accent" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg>
-    <span emptyText>You have <strong class="fw-bold">{{ state.totalBudget | inr }}</strong> to spend across
+    <span emptyText>You have <strong class="fw-bold">{{ state.totalBudget | money }}</strong> to spend across
       <ng-container [ngPlural]="state.categoryCount"><ng-template ngPluralCase="=1">1 category</ng-template><ng-template ngPluralCase="other">{{ state.categoryCount }} categories</ng-template></ng-container>.
       Your limits carried over from {{ state.previousMonthName }}.</span>
     <!-- Same size and look as the header "+ Add transaction" (.btn-add). Stacked full width below sm (Add on top),

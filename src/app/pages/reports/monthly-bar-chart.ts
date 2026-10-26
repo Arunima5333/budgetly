@@ -1,4 +1,4 @@
-import { formatShortInr, ShortInrStyle } from '../../core/utils/short-inr';
+import { CurrencyCode, DEFAULT_CURRENCY, formatShortMoney, ShortMoneyStyle } from '../../core/utils/money';
 
 // Provided globally by chart.js/dist/Chart.min.js (registered in angular.json).
 declare const Chart: any;
@@ -88,11 +88,11 @@ export const BAR_LABEL_PADDING = { top: 22, bottom: 26 };
 
 const AMOUNT_SIZES = [12, 11, 10, 9, 8];
 const MONTH_SIZES = [12, 11, 10, 9, 8];
-const AMOUNT_STYLES: ShortInrStyle[] = ['full', 'no-symbol', 'shortest'];
+const AMOUNT_STYLES: ShortMoneyStyle[] = ['full', 'no-symbol', 'shortest'];
 
-/** Mobile (compact): smaller text, and amounts never carry '₹' ('38.2k'). */
+/** Mobile (compact): smaller text, and amounts never carry the currency symbol ('38.2k'). */
 const COMPACT_SIZES = [10, 9, 8];
-const COMPACT_AMOUNT_STYLES: ShortInrStyle[] = ['no-symbol', 'shortest'];
+const COMPACT_AMOUNT_STYLES: ShortMoneyStyle[] = ['no-symbol', 'shortest'];
 
 function font(size: number, weight: number, family: string): string {
   return weight + ' ' + size + 'px ' + family;
@@ -115,12 +115,12 @@ function fitSize(ctx: any, texts: string[], maxWidth: number, sizes: number[], w
  * can't fit) for months without transactions, all at one size that fits every bar's slot.
  */
 export function fitBarLabels(ctx: any, values: number[], noData: boolean[], maxWidth: number, family: string,
-                             compact = false): { texts: string[]; size: number } {
+                             compact = false, currency: CurrencyCode = DEFAULT_CURRENCY): { texts: string[]; size: number } {
   const sizes = compact ? COMPACT_SIZES : AMOUNT_SIZES;
   const styles = compact ? COMPACT_AMOUNT_STYLES : AMOUNT_STYLES;
   for (const noDataText of [NO_DATA_TEXT, NO_DATA_SHORT]) {
     for (const style of styles) {
-      const texts = values.map((v, i) => noData[i] ? noDataText : formatShortInr(v, style));
+      const texts = values.map((v, i) => noData[i] ? noDataText : formatShortMoney(v, currency, style));
       const size = fitSize(ctx, texts, maxWidth, sizes, 500, family);
       if (size !== null) {
         return { texts, size };
@@ -128,21 +128,22 @@ export function fitBarLabels(ctx: any, values: number[], noData: boolean[], maxW
     }
   }
   return {
-    texts: values.map((v, i) => noData[i] ? NO_DATA_SHORT : formatShortInr(v, 'shortest')),
+    texts: values.map((v, i) => noData[i] ? NO_DATA_SHORT : formatShortMoney(v, currency, 'shortest')),
     size: sizes[sizes.length - 1]
   };
 }
 
 /**
- * Per-chart plugin: a thin baseline under the bars, the short amount above each bar ('₹0' just
+ * Per-chart plugin: a thin baseline under the bars, the short amount above each bar ('$0' just
  * above the baseline for empty months) and the month name below; the last bar is the selected
  * month (bold, body colour). Font sizes shrink with the space per bar so labels never overlap;
- * in compact (mobile) mode text starts smaller and amounts drop the '₹'.
+ * in compact (mobile) mode text starts smaller and amounts drop the symbol. Amounts use getCurrency() at draw time.
  * Months with no transactions (dataset.noData[i]) get a dashed outline the full height of the plot area
  * (rounded top, open bottom on the baseline) with "No data" above it: strong gray, or the accent for the
- * selected month. A month with transactions but no expenses is a real ₹0 (no bar, '₹0' label).
+ * selected month. A month with transactions but no expenses is a real 0 (no bar, '$0' label).
  */
-export function monthlyLabelsPlugin(getColors: () => BarChartColors, family: string, isCompact: () => boolean = () => false) {
+export function monthlyLabelsPlugin(getColors: () => BarChartColors, family: string, isCompact: () => boolean = () => false,
+                                    getCurrency: () => CurrencyCode = () => DEFAULT_CURRENCY) {
   return {
     beforeDatasetsDraw: (chart: any) => {
       const area = chart.chartArea;
@@ -170,7 +171,7 @@ export function monthlyLabelsPlugin(getColors: () => BarChartColors, family: str
       const colors = getColors();
       const maxWidth = (area.right - area.left) / count - 4;
       const compact = isCompact();
-      const amounts = fitBarLabels(ctx, values, values.map((v, i) => !!noData[i]), maxWidth, family, compact);
+      const amounts = fitBarLabels(ctx, values, values.map((v, i) => !!noData[i]), maxWidth, family, compact, getCurrency());
       let monthSize = fitSize(ctx, months, maxWidth, compact ? COMPACT_SIZES : MONTH_SIZES, 700, family);
       const monthTexts = monthSize === null ? months.map(m => m.charAt(0)) : months;
       monthSize = monthSize === null ? MONTH_SIZES[MONTH_SIZES.length - 1] : monthSize;

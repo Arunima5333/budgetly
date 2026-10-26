@@ -1,5 +1,5 @@
 import { CategoryBudget } from '../models/category-budget.model';
-import { formatInr } from '../../shared/pipes/inr.pipe';
+import { CurrencyCode, DEFAULT_CURRENCY, displaysAsZero, formatMoney } from './money';
 
 /** Badge colour family: up (red), down (green), saved (accent), overspent (red), neutral (gray). */
 export type InsightTone = 'up' | 'down' | 'saved' | 'overspent' | 'neutral';
@@ -48,15 +48,18 @@ export function computeInsights(
   currentBudgets: CategoryBudget[],
   previousBudgets: CategoryBudget[],
   currentSummary: { income: number; spent: number },
-  prevMonthName: string
+  prevMonthName: string,
+  currency: CurrencyCode = DEFAULT_CURRENCY
 ): Insight[] {
+  const money = (value: number) => formatMoney(value, currency);
   const previousPaise: { [name: string]: number } = {};
   previousBudgets.forEach(b => previousPaise[b.name] = toPaise(b.spent));
   const previousTotal = previousBudgets.reduce((sum, b) => sum + toPaise(b.spent), 0);
 
   const changes: Change[] = currentBudgets
     .map(b => ({ name: b.name, previous: (previousPaise[b.name] || 0) / 100, current: toPaise(b.spent) / 100 }))
-    .filter(c => c.previous > 0 && c.current !== c.previous)
+    // A change that shows as zero in the currency ('up from $11.36 to $11.36') counts as unchanged.
+    .filter(c => c.previous > 0 && c.current !== c.previous && !displaysAsZero(c.current - c.previous, currency))
     .map(c => ({ ...c, ratio: (c.current - c.previous) / c.previous }));
 
   let increase: Insight;
@@ -71,7 +74,7 @@ export function computeInsights(
       ? {
         tone: 'up',
         badge: '↑ ' + percentText(up.ratio) + '%',
-        text: up.name + ' spending is up from ' + formatInr(up.previous) + ' in ' + prevMonthName + ' to ' + formatInr(up.current) + '.'
+        text: up.name + ' spending is up from ' + money(up.previous) + ' in ' + prevMonthName + ' to ' + money(up.current) + '.'
       }
       : { tone: 'neutral', badge: 'No increase', text: 'No category spent more than in ' + prevMonthName + '.' };
 
@@ -80,7 +83,7 @@ export function computeInsights(
       ? {
         tone: 'down',
         badge: '↓ ' + percentText(down.ratio) + '%',
-        text: down.name + ' costs dropped from ' + formatInr(down.previous) + ' to ' + formatInr(down.current) + '.'
+        text: down.name + ' costs dropped from ' + money(down.previous) + ' to ' + money(down.current) + '.'
       }
       : { tone: 'neutral', badge: 'No decrease', text: 'No category spent less than in ' + prevMonthName + '.' };
   }
@@ -90,17 +93,20 @@ export function computeInsights(
   if (!(income > 0)) {
     savings = { tone: 'neutral', badge: 'No income', text: 'No income recorded this month.' };
   } else {
-    const saved = (toPaise(income) - toPaise(currentSummary.spent)) / 100;
+    // Like the Overview summary: a difference that shows as zero in the currency (e.g. ₹0.30 over is '$0.00')
+    // reads as on budget, '0% saved' / 'You kept $0.00 …', never '0% overspent' / 'You spent $0.00 more …'.
+    const difference = (toPaise(income) - toPaise(currentSummary.spent)) / 100;
+    const saved = displaysAsZero(difference, currency) ? 0 : difference;
     savings = saved >= 0
       ? {
         tone: 'saved',
         badge: percentText(saved / income) + '% saved',
-        text: 'You kept ' + formatInr(saved) + ' of your ' + formatInr(income) + ' income this month.'
+        text: 'You kept ' + money(saved) + ' of your ' + money(income) + ' income this month.'
       }
       : {
         tone: 'overspent',
         badge: percentText(saved / income) + '% overspent',
-        text: 'You spent ' + formatInr(-saved) + ' more than your ' + formatInr(income) + ' income this month.'
+        text: 'You spent ' + money(-saved) + ' more than your ' + money(income) + ' income this month.'
       };
   }
   return [increase, decrease, savings];

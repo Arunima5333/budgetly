@@ -6,10 +6,14 @@ import { CategoryBudget } from '../../core/models/category-budget.model';
 import { MonthSummary } from '../../core/models/month-summary.model';
 import { Transaction } from '../../core/models/transaction.model';
 import { YearMonth } from '../../core/models/year-month.model';
+import { CurrencyService } from '../../core/services/currency.service';
 import { DataService } from '../../core/services/data.service';
 import { TodayService } from '../../core/services/today.service';
 import { amountSign } from '../../core/utils/amount-sign';
+import { adjustStatusForCurrency } from '../../core/utils/category-budgets';
 import { formatDayMonth, formatMonthYear } from '../../core/utils/date-format';
+import { CurrencyOption, DEFAULT_CURRENCY, getCurrency } from '../../core/utils/money';
+import { adjustSummaryForCurrency } from '../../core/utils/month-summary';
 
 interface SummaryView extends MonthSummary {
   /** Rounded spent / totalBudget as a percentage, unclamped (used in the aria-label). */
@@ -70,7 +74,10 @@ export class OverviewComponent {
   /** "Recent transactions" rows (newest 5) for the selected month; subscribed with the async pipe. */
   recentTransactions$: Observable<RecentTransactionView[]>;
 
-  constructor(private dataService: DataService, private today: TodayService) {
+  /** Header note for converted currencies ('Amounts shown in $ USD …'); null (hidden) for the INR base. */
+  rateNote$: Observable<CurrencyOption | null>;
+
+  constructor(private dataService: DataService, private today: TodayService, private currencyService: CurrencyService) {
     // Recompute the cards when the month changes and when transactions are added.
     const monthData$: Observable<YearMonth> = combineLatest(
       this.dataService.selectedMonth$,
@@ -78,12 +85,16 @@ export class OverviewComponent {
     ).pipe(map(([selected]) => selected));
 
     this.state$ = monthData$.pipe(map(selected => this.toState(selected)));
+    this.rateNote$ = this.currencyService.currency$.pipe(map(code => code === DEFAULT_CURRENCY ? null : getCurrency(code)));
 
-    this.summary$ = monthData$.pipe(
-      map(selected => this.toSummaryView(this.dataService.getMonthSummary(selected.year, selected.month)))
+    // Overspends that show as zero in the selected currency read as at limit / on budget (display only).
+    this.summary$ = combineLatest(monthData$, this.currencyService.currency$).pipe(
+      map(([selected, currency]) => adjustSummaryForCurrency(
+        this.toSummaryView(this.dataService.getMonthSummary(selected.year, selected.month)), currency))
     );
-    this.categoryBudgets$ = monthData$.pipe(
-      map(selected => this.dataService.getCategoryBudgets(selected.year, selected.month))
+    this.categoryBudgets$ = combineLatest(monthData$, this.currencyService.currency$).pipe(
+      map(([selected, currency]) => this.dataService.getCategoryBudgets(selected.year, selected.month)
+        .map(b => adjustStatusForCurrency(b, currency)))
     );
     this.recentTransactions$ = monthData$.pipe(
       map(selected => this.dataService.getRecentTransactions(selected.year, selected.month)

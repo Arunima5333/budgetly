@@ -1,7 +1,8 @@
 import { CategoryBudget } from '../models/category-budget.model';
 import { Category } from '../models/category.model';
 import { Transaction } from '../models/transaction.model';
-import { budgetStatus, computeCategoryBudgets, needsAttention, toCategoryBudget } from './category-budgets';
+import { adjustStatusForCurrency, budgetStatus, computeCategoryBudgets, needsAttention, toCategoryBudget } from './category-budgets';
+import { CurrencyCode } from './money';
 
 const FOOD: Category = { name: 'Food', color: '#e0812f', monthlyLimit: 100 };
 
@@ -82,5 +83,48 @@ describe('needsAttention', () => {
 
   it('is empty when everything is on track', () => {
     expect(needsAttention([budget('A', 0), budget('B', 8499)])).toEqual([]);
+  });
+});
+
+describe('adjustStatusForCurrency', () => {
+  const RENT: Category = { name: 'Rent', color: '#5b6cf0', monthlyLimit: 10000 };
+  const overBy = (paise: number) => toCategoryBudget(RENT, 1000000 + paise);
+
+  it('shows an overspend that displays as zero as At limit (₹0.01 everywhere, ₹0.40 in USD/INR, ₹0.25 in JPY)', () => {
+    const cases: [number, CurrencyCode][] = [
+      [1, 'USD'], [1, 'JPY'], [1, 'INR'], [1, 'EUR'], [1, 'GBP'], [40, 'USD'], [40, 'INR'], [25, 'JPY']
+    ];
+    cases.forEach(([paise, code]) => {
+      const shown = adjustStatusForCurrency(overBy(paise), code);
+      expect(shown.status).toBe('at-limit');
+      expect(shown.overBy).toBe(0);
+      expect(shown.percentUsed).toBe(100);
+      expect(shown.barPercent).toBe(100);
+    });
+  });
+
+  it('keeps Over when the overspend displays as non-zero', () => {
+    // ₹0.40 is ¥0.69, which shows as '¥1'.
+    expect(adjustStatusForCurrency(overBy(40), 'JPY').status).toBe('over');
+    // ₹0.50 is '₹1' in INR (whole rupees) and '$0.01' in USD, but '¥1' too (0.5 / 0.58 = 0.86 -> ¥1).
+    expect(adjustStatusForCurrency(overBy(50), 'INR').status).toBe('over');
+    expect(adjustStatusForCurrency(overBy(50), 'USD').status).toBe('over');
+    expect(adjustStatusForCurrency(overBy(50), 'JPY').status).toBe('over');
+    const big = adjustStatusForCurrency(overBy(150000), 'USD');
+    expect(big.status).toBe('over');
+    expect(big.overBy).toBe(1500);
+  });
+
+  it('leaves other statuses and the stored budget untouched', () => {
+    const original = overBy(40);
+    adjustStatusForCurrency(original, 'USD');
+    expect(original.status).toBe('over');
+    const onTrack = toCategoryBudget(RENT, 100);
+    expect(adjustStatusForCurrency(onTrack, 'USD')).toBe(onTrack);
+  });
+
+  it('groups an adjusted category with at-limit in Needs attention', () => {
+    const list = [overBy(40), overBy(150000), toCategoryBudget(FOOD, 10000)].map(b => adjustStatusForCurrency(b, 'USD'));
+    expect(needsAttention(list).map(b => b.status)).toEqual(['over', 'at-limit', 'at-limit']);
   });
 });

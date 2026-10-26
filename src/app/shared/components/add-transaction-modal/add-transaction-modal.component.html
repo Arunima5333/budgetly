@@ -25,12 +25,12 @@
         <div class="mb-3">
           <label class="form-label fw-semibold" [for]="ids.amount">Amount</label>
           <div class="input-group input-group-lg has-validation">
-            <span class="input-group-text text-body-secondary">₹</span>
+            <span class="input-group-text text-body-secondary">{{ currencySymbol }}</span>
             <input #amountInput type="number" class="form-control fs-3 fw-bold" placeholder="0"
-                   inputmode="decimal" step="0.01" min="0" formControlName="amount" [id]="ids.amount"
+                   inputmode="decimal" [attr.step]="amountStep" min="0" formControlName="amount" [id]="ids.amount"
                    [class.is-invalid]="amountInvalid" [attr.aria-invalid]="amountInvalid"
                    [attr.aria-describedby]="amountInvalid ? ids.amountError : null">
-            <div class="invalid-feedback fw-semibold" [id]="ids.amountError">Enter an amount greater than 0.</div>
+            <div class="invalid-feedback fw-semibold" [id]="ids.amountError">{{ amountErrorText }}</div>
           </div>
         </div>
 

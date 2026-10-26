@@ -4,7 +4,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 
 import { AlertService } from '../../../core/services/alert.service';
 import { DataService } from '../../../core/services/data.service';
-import { InrPipe } from '../../pipes/inr.pipe';
+import { MoneyPipe } from '../../pipes/money.pipe';
 import { AddTransactionModalComponent } from './add-transaction-modal.component';
 
 describe('AddTransactionModalComponent save guard', () => {
@@ -16,7 +16,7 @@ describe('AddTransactionModalComponent save guard', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [ReactiveFormsModule],
-      declarations: [AddTransactionModalComponent, InrPipe],
+      declarations: [AddTransactionModalComponent, MoneyPipe],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
   }));
@@ -24,10 +24,11 @@ describe('AddTransactionModalComponent save guard', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(AddTransactionModalComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
     // No fade: Bootstrap shows/hides the modal (and its backdrop) synchronously, so no transition callback
-    // can run after a test has finished and its DOM is gone.
-    component.modalEl.nativeElement.classList.remove('fade');
+    // can run after a test has finished and its DOM is gone. Removed BEFORE the first change detection:
+    // ngAfterViewInit creates the Bootstrap Modal, which fixes its backdrop's animation at construction.
+    fixture.nativeElement.querySelector('.modal').classList.remove('fade');
+    fixture.detectChanges();
     addSpy = spyOn(TestBed.get(DataService), 'addTransaction').and.returnValue(null);
     alertSpy = spyOn(TestBed.get(AlertService), 'show');
     component.open();

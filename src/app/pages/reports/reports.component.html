@@ -44,7 +44,7 @@
           <canvas #spendingCanvas role="img" [attr.aria-label]="chartAriaLabel"></canvas>
           <div class="chart-center" aria-hidden="true">
             <div class="small text-body-secondary">Total spent</div>
-            <div class="fs-5 fw-bold">{{ totalSpent | inr }}</div>
+            <div class="fs-5 fw-bold">{{ totalSpent | money }}</div>
           </div>
         </div>
 
@@ -53,7 +53,7 @@
             <span class="category-dot" [style.background-color]="slice.color" aria-hidden="true"></span>
             <span class="spend-name text-truncate">{{ slice.name }}</span>
             <span class="text-body-secondary small spend-percent">{{ slice.percentLabel }}</span>
-            <span class="spend-amount">{{ slice.spent | inr }}</span>
+            <span class="spend-amount">{{ slice.spent | money }}</span>
           </li>
         </ul>
       </div>
@@ -79,7 +79,7 @@
       </div>
       <p class="text-body-secondary small mb-3">
         <ng-container *ngIf="isPastEmpty">{{ rangeNoDataText }}</ng-container>
-        <ng-container *ngIf="!isPastEmpty && monthlyAverage !== null">Average {{ monthlyAverage | inr }} a month</ng-container>
+        <ng-container *ngIf="!isPastEmpty && monthlyAverage !== null">Average {{ monthlyAverage | money }} a month</ng-container>
         <ng-container *ngIf="!isPastEmpty && monthlyAverage === null">No spending in this period</ng-container>
       </p>
 
@@ -94,7 +94,7 @@
         <tbody>
           <tr *ngFor="let bar of monthBars">
             <th scope="row">{{ bar.longName }}{{ bar.selected ? ' (selected)' : '' }}</th>
-            <td>{{ bar.hasData ? (bar.total | inr) : 'No data' }}</td>
+            <td>{{ bar.hasData ? (bar.total | money) : 'No data' }}</td>
           </tr>
         </tbody>
       </table>

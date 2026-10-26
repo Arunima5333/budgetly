@@ -123,7 +123,7 @@
                 <span class="category-name text-truncate" [title]="row.category">{{ row.category }}</span>
               </div>
             </td>
-            <td class="cell-amount text-end" [class.is-income]="row.isIncome">{{ row.sign }}{{ row.amount | inr }}</td>
+            <td class="cell-amount text-end" [class.is-income]="row.isIncome">{{ row.amount | money:row.sign }}</td>
             <td class="cell-actions text-end" *ngIf="view.canAdd">
               <button type="button" class="row-action" [attr.data-edit-id]="row.id" [attr.aria-label]="'Edit ' + row.description"
                       (click)="editTransaction(row)">
@@ -161,7 +161,7 @@
         <span class="txn-description d-block">{{ row.description }}</span>
         <span class="txn-meta d-block">{{ row.category }} · {{ row.dateLabel }}</span>
       </span>
-      <span class="txn-amount" [class.is-income]="row.isIncome">{{ row.sign }}{{ row.amount | inr }}</span>
+      <span class="txn-amount" [class.is-income]="row.isIncome">{{ row.amount | money:row.sign }}</span>
     </ng-template>
   </ng-container>
 

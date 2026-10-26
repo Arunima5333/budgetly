@@ -13,7 +13,7 @@
 
       <div class="py-4" [id]="ids.description">
         <p class="text-break mb-0" *ngIf="transaction">
-          {{ transaction.description }} · {{ transaction.amount | inr }} · {{ dateLabel }}
+          {{ transaction.description }} · {{ transaction.amount | money }} · {{ dateLabel }}
         </p>
       </div>
 

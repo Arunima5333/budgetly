@@ -6,12 +6,14 @@ import { map } from 'rxjs/operators';
 import { CategoryBudget } from '../../core/models/category-budget.model';
 import { Category } from '../../core/models/category.model';
 import { AlertService } from '../../core/services/alert.service';
+import { CurrencyService } from '../../core/services/currency.service';
 import { CATEGORY_NAME_MAX_LENGTH, DataService } from '../../core/services/data.service';
 import { TodayService } from '../../core/services/today.service';
 import { budgetHint, BudgetHint } from '../../core/utils/budget-hint';
-import { needsAttention, toCategoryBudget } from '../../core/utils/category-budgets';
+import { adjustStatusForCurrency, needsAttention, toCategoryBudget } from '../../core/utils/category-budgets';
 import { formatMonthYear } from '../../core/utils/date-format';
-import { positiveAmount } from '../../core/utils/validators';
+import { CurrencyCode, getCurrency, inputToInr, inrToInputValue } from '../../core/utils/money';
+import { amountDecimalsIn, amountErrorText, positiveAmountIn } from '../../core/utils/validators';
 
 // Provided globally by bootstrap.bundle.min.js (registered in angular.json).
 declare const bootstrap: any;
@@ -112,6 +114,8 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
   editingName: string | null = null;
   /** Stored colour when it is not one of the 8 swatches: shown as an extra, selected swatch for this edit. */
   extraSwatch: ColorOption | null = null;
+  /** Currency the limit is typed in, fixed when the modal opens; limits are saved in rupees. */
+  formCurrency: CurrencyCode;
 
   /** Selected month's income and the current total of all limits, for the limit hint. */
   private hintIncome = 0;
@@ -121,6 +125,8 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
   /** Edit mode: the category's real spending this month (paise) and its stored limit. */
   private editingSpentPaise = 0;
   private editingStoredLimit = 0;
+  /** Edit mode: the value the limit field was prefilled with (in formCurrency), for round-trip-safe saves. */
+  private prefilledLimit: number | null = null;
   /** Name after the last successful edit, to find its card's pencil again if it re-rendered. */
   private lastSavedName: string | null = null;
   /** Set after a successful add: the form is reset once the modal has faded out. */
@@ -206,15 +212,19 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
   }
 
   constructor(private dataService: DataService, private fb: FormBuilder, private host: ElementRef,
-              private alertService: AlertService, private today: TodayService) {
+              private alertService: AlertService, private today: TodayService, private currencyService: CurrencyService) {
+    this.formCurrency = this.currencyService.currency;
     // Income, spending and categories can change (transactions edited, categories added).
     this.view$ = combineLatest(
       this.dataService.selectedMonth$,
-      this.dataService.dataChanged$
+      this.dataService.dataChanged$,
+      this.currencyService.currency$
     ).pipe(
-      map(([selected]) => {
+      map(([selected, , currency]) => {
         const summary = this.dataService.getMonthSummary(selected.year, selected.month);
-        const budgets = this.dataService.getCategoryBudgets(selected.year, selected.month);
+        // Overspends that show as zero in the selected currency read 'At limit' (cards, list, Needs attention).
+        const budgets = this.dataService.getCategoryBudgets(selected.year, selected.month)
+          .map(b => adjustStatusForCurrency(b, currency));
         const isCurrent = this.today.isCurrentMonth(selected);
         const hasTransactions = this.dataService.getTransactionsForMonth(selected.year, selected.month).length > 0;
         return {
@@ -236,9 +246,24 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
 
     this.categoryForm = this.fb.group({
       name: ['', categoryName],
-      limit: [null, [Validators.required, positiveAmount]],
+      limit: [null, [Validators.required, positiveAmountIn(() => this.formCurrency), amountDecimalsIn(() => this.formCurrency)]],
       color: [CATEGORY_COLORS[0].value]
     });
+  }
+
+  /** Prefix of the limit field, e.g. '$': the limit is typed in this currency and saved in rupees. */
+  get currencySymbol(): string {
+    return getCurrency(this.formCurrency).symbol;
+  }
+
+  /** 1 for whole-unit currencies (JPY), else 0.01. */
+  get limitStep(): string {
+    return getCurrency(this.formCurrency).decimals === 0 && this.formCurrency !== 'INR' ? '1' : '0.01';
+  }
+
+  /** Example limit in the form's currency, e.g. '2,000' or '25.00'. */
+  get limitPlaceholder(): string {
+    return getCurrency(this.formCurrency).limitPlaceholder;
   }
 
   /** Trimmed name as typed. */
@@ -266,14 +291,24 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
       : 'Enter a category name.';
   }
 
+  /** 'Enter a limit greater than 0.', or the decimals rule ('Use at most 2 decimal places.' / whole yen). */
+  get limitErrorText(): string {
+    return amountErrorText(this.categoryForm.get('limit'), 'limit') || '';
+  }
+
   get limitInvalid(): boolean {
     return this.submitted && this.categoryForm.get('limit').invalid;
   }
 
-  /** The typed limit rounded to paise, or null while empty or invalid. */
+  /**
+   * The typed limit in rupees (converted from formCurrency, rounded to paise), or null while empty or invalid.
+   * An untouched edit gives back the stored limit exactly. The hint and preview compare in rupees.
+   */
   get validLimit(): number | null {
     const control = this.categoryForm.get('limit');
-    return control.valid ? Math.round(Number(control.value) * 100) / 100 : null;
+    return control.valid
+      ? inputToInr(control.value, this.formCurrency, this.prefilledLimit, this.categoryMode === 'edit' ? this.editingStoredLimit : null)
+      : null;
   }
 
   get limitHint(): BudgetHint {
@@ -291,7 +326,8 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
     const limit = this.validLimit !== null ? this.validLimit
       : (this.categoryMode === 'edit' ? this.editingStoredLimit : 0);
     const spentPaise = this.categoryMode === 'edit' ? this.editingSpentPaise : 0;
-    return toCategoryBudget({ name: this.trimmedName, color: this.selectedColor, monthlyLimit: limit }, spentPaise);
+    return adjustStatusForCurrency(
+      toCategoryBudget({ name: this.trimmedName, color: this.selectedColor, monthlyLimit: limit }, spentPaise), this.formCurrency);
   }
 
   /** The 8 swatches, plus the stored colour when editing a category whose colour is not one of them. */
@@ -377,7 +413,9 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
     this.submitted = false;
     const color = category.color.toLowerCase();
     this.extraSwatch = CATEGORY_COLORS.some(c => c.value === color) ? null : { name: 'Current colour', value: color };
-    this.categoryForm.reset({ name: category.name, limit: category.monthlyLimit, color });
+    this.formCurrency = this.currencyService.currency;
+    this.prefilledLimit = inrToInputValue(category.monthlyLimit, this.formCurrency);
+    this.categoryForm.reset({ name: category.name, limit: this.prefilledLimit, color });
 
     const selected = this.dataService.getSelectedMonth();
     const summary = this.dataService.getMonthSummary(selected.year, selected.month);
@@ -413,7 +451,7 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
     this.saving = true;
     const input = {
       name: this.trimmedName,
-      monthlyLimit: Number(this.categoryForm.get('limit').value),
+      monthlyLimit: this.validLimit,
       color: this.selectedColor
     };
 
@@ -533,6 +571,8 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
     this.extraSwatch = null;
     this.editingSpentPaise = 0;
     this.editingStoredLimit = 0;
+    this.prefilledLimit = null;
+    this.formCurrency = this.currencyService.currency;
     this.submitted = false;
     this.categoryForm.reset({ name: '', limit: null, color: CATEGORY_COLORS[0].value });
     // Hint inputs: the selected month's income and the current total (it grows after each add).

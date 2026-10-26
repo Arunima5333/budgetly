@@ -5,8 +5,8 @@
     <div class="min-w-0">
       <h1 class="h3 mb-1">Budgets</h1>
       <p class="text-body-secondary small mb-0">
-        <ng-container *ngIf="view.isNewMonth"><ng-container *ngIf="view.limits.length; else noCategoriesYet">{{ view.totalBudget | inr }} for {{ view.monthName }}<span class="meta-dot" aria-hidden="true"></span><span class="text-nowrap">carried over from {{ view.previousMonthName }}</span></ng-container><ng-template #noCategoriesYet>No categories yet for {{ view.monthName }}</ng-template></ng-container>
-        <ng-container *ngIf="!view.isNewMonth && (view.canAddCategory || view.hasTransactions)">{{ view.totalBudget | inr }} budgeted for {{ view.canAddCategory ? view.monthName : view.monthYear }}<ng-container *ngIf="view.incomePercent !== null"><span class="meta-dot" aria-hidden="true"></span><span class="text-nowrap">{{ view.incomePercent }}% of your income</span></ng-container></ng-container>
+        <ng-container *ngIf="view.isNewMonth"><ng-container *ngIf="view.limits.length; else noCategoriesYet">{{ view.totalBudget | money }} for {{ view.monthName }}<span class="meta-dot" aria-hidden="true"></span><span class="text-nowrap">carried over from {{ view.previousMonthName }}</span></ng-container><ng-template #noCategoriesYet>No categories yet for {{ view.monthName }}</ng-template></ng-container>
+        <ng-container *ngIf="!view.isNewMonth && (view.canAddCategory || view.hasTransactions)">{{ view.totalBudget | money }} budgeted for {{ view.canAddCategory ? view.monthName : view.monthYear }}<ng-container *ngIf="view.incomePercent !== null"><span class="meta-dot" aria-hidden="true"></span><span class="text-nowrap">{{ view.incomePercent }}% of your income</span></ng-container></ng-container>
         <ng-container *ngIf="!view.canAddCategory && !view.hasTransactions">Nothing spent in {{ view.monthYear }}<span class="meta-dot" aria-hidden="true"></span><span class="text-nowrap">no income recorded</span></ng-container>
       </p>
     </div>
@@ -45,7 +45,7 @@
                 <span class="status-badge ms-auto" [ngClass]="'status-' + budget.status" [ngSwitch]="budget.status">
                   <ng-container *ngSwitchCase="'close'">Close to limit</ng-container>
                   <ng-container *ngSwitchCase="'at-limit'">At limit</ng-container>
-                  <ng-container *ngSwitchCase="'over'">Over by {{ budget.overBy | inr }}</ng-container>
+                  <ng-container *ngSwitchCase="'over'">Over by {{ budget.overBy | money }}</ng-container>
                 </span>
               </div>
               <a class="btn btn-sm view-txn-btn" routerLink="/transactions" [queryParams]="{ category: budget.name }"
@@ -77,13 +77,13 @@
                   <ng-container *ngSwitchCase="'on-track'">On track</ng-container>
                   <ng-container *ngSwitchCase="'close'">Close to limit</ng-container>
                   <ng-container *ngSwitchCase="'at-limit'">At limit</ng-container>
-                  <ng-container *ngSwitchCase="'over'">Over by {{ budget.overBy | inr }}</ng-container>
+                  <ng-container *ngSwitchCase="'over'">Over by {{ budget.overBy | money }}</ng-container>
                 </span>
               </div>
 
               <div class="d-flex flex-wrap align-items-baseline column-gap-2">
-                <span class="budget-amount fs-4 fw-bold">{{ budget.spent | inr }}</span>
-                <span class="text-body-secondary small">spent of {{ budget.limit | inr }}</span>
+                <span class="budget-amount fs-4 fw-bold">{{ budget.spent | money }}</span>
+                <span class="text-body-secondary small">spent of {{ budget.limit | money }}</span>
               </div>
 
               <div class="progress budget-bar" role="progressbar"
@@ -94,8 +94,8 @@
 
               <div class="d-flex align-items-center gap-2 mt-auto">
                 <span class="text-body-secondary small me-auto">
-                  <ng-container *ngIf="budget.status === 'over'">{{ budget.overBy | inr }} over</ng-container>
-                  <ng-container *ngIf="budget.status !== 'over'">{{ leftAmount(budget) | inr }} left</ng-container>
+                  <ng-container *ngIf="budget.status === 'over'">{{ budget.overBy | money }} over</ng-container>
+                  <ng-container *ngIf="budget.status !== 'over'">{{ leftAmount(budget) | money }} left</ng-container>
                 </span>
                 <a class="icon-btn" routerLink="/transactions" [queryParams]="{ category: budget.name }"
                    [attr.aria-label]="'View ' + budget.name + ' transactions'">
@@ -123,7 +123,7 @@
                   <ng-container *ngSwitchCase="'on-track'">On track</ng-container>
                   <ng-container *ngSwitchCase="'close'">Close to limit</ng-container>
                   <ng-container *ngSwitchCase="'at-limit'">At limit</ng-container>
-                  <ng-container *ngSwitchCase="'over'">Over by {{ budget.overBy | inr }}</ng-container>
+                  <ng-container *ngSwitchCase="'over'">Over by {{ budget.overBy | money }}</ng-container>
                 </span>
               </div>
 
@@ -135,7 +135,7 @@
 
               <div class="d-flex align-items-center gap-1 mt-1">
                 <span class="text-body-secondary small flex-grow-1 min-w-0">
-                  {{ budget.spent | inr }} of {{ budget.limit | inr }}<span class="text-nowrap"><span class="meta-dot" aria-hidden="true"></span><ng-container *ngIf="budget.status === 'over'">{{ budget.overBy | inr }} over</ng-container><ng-container *ngIf="budget.status !== 'over'">{{ leftAmount(budget) | inr }} left</ng-container></span>
+                  {{ budget.spent | money }} of {{ budget.limit | money }}<span class="text-nowrap"><span class="meta-dot" aria-hidden="true"></span><ng-container *ngIf="budget.status === 'over'">{{ budget.overBy | money }} over</ng-container><ng-container *ngIf="budget.status !== 'over'">{{ leftAmount(budget) | money }} left</ng-container></span>
                 </span>
                 <a class="icon-btn" routerLink="/transactions" [queryParams]="{ category: budget.name }"
                    [attr.aria-label]="'View ' + budget.name + ' transactions'">
@@ -191,7 +191,7 @@
                     <span class="text-truncate">{{ category.name }}</span>
                   </div>
                 </td>
-                <td class="text-end limit-amount">{{ category.monthlyLimit | inr }}</td>
+                <td class="text-end limit-amount">{{ category.monthlyLimit | money }}</td>
                 <td class="text-end">
                   <button type="button" class="icon-btn" [attr.data-category]="category.name"
                           [attr.aria-label]="'Edit ' + category.name + ' budget'"
@@ -236,19 +236,19 @@
         <div class="mb-3">
           <label class="form-label fw-semibold" [for]="ids.limit">Monthly limit</label>
           <div class="input-group input-group-lg has-validation">
-            <span class="input-group-text text-body-secondary">₹</span>
-            <input type="number" class="form-control fs-3 fw-bold" placeholder="2,000"
-                   inputmode="decimal" step="0.01" min="0" formControlName="limit" [id]="ids.limit"
+            <span class="input-group-text text-body-secondary">{{ currencySymbol }}</span>
+            <input type="number" class="form-control fs-3 fw-bold" [attr.placeholder]="limitPlaceholder"
+                   inputmode="decimal" [attr.step]="limitStep" min="0" formControlName="limit" [id]="ids.limit"
                    [class.is-invalid]="limitInvalid" [attr.aria-invalid]="limitInvalid"
                    [attr.aria-describedby]="limitDescribedBy">
-            <div class="invalid-feedback fw-semibold" [id]="ids.limitError">Enter a limit greater than 0.</div>
+            <div class="invalid-feedback fw-semibold" [id]="ids.limitError">{{ limitErrorText }}</div>
           </div>
           <div class="form-text limit-hint" [id]="ids.limitHint" aria-live="polite" [class.is-warn]="limitHint.warn"
                [ngSwitch]="limitHint.kind">
-            <ng-container *ngSwitchCase="'unbudgeted'">{{ limitHint.amount | inr }} of your income isn't budgeted yet.</ng-container>
-            <ng-container *ngSwitchCase="'remaining'">{{ limitHint.amount | inr }} of your income will still be unbudgeted after this.</ng-container>
-            <ng-container *ngSwitchCase="'over'">This puts your budgets {{ limitHint.amount | inr }} above your monthly income.</ng-container>
-            <ng-container *ngSwitchCase="'already-over'">Your budgets are already {{ limitHint.amount | inr }} above your monthly income.</ng-container>
+            <ng-container *ngSwitchCase="'unbudgeted'">{{ limitHint.amount | money }} of your income isn't budgeted yet.</ng-container>
+            <ng-container *ngSwitchCase="'remaining'">{{ limitHint.amount | money }} of your income will still be unbudgeted after this.</ng-container>
+            <ng-container *ngSwitchCase="'over'">This puts your budgets {{ limitHint.amount | money }} above your monthly income.</ng-container>
+            <ng-container *ngSwitchCase="'already-over'">Your budgets are already {{ limitHint.amount | money }} above your monthly income.</ng-container>
           </div>
         </div>
 
@@ -276,10 +276,10 @@
                 <ng-container *ngSwitchCase="'on-track'">On track</ng-container>
                 <ng-container *ngSwitchCase="'close'">Close to limit</ng-container>
                 <ng-container *ngSwitchCase="'at-limit'">At limit</ng-container>
-                <ng-container *ngSwitchCase="'over'">Over by {{ preview.overBy | inr }}</ng-container>
+                <ng-container *ngSwitchCase="'over'">Over by {{ preview.overBy | money }}</ng-container>
               </span>
             </div>
-            <div class="text-body-secondary small mt-1">{{ preview.spent | inr }} spent of {{ preview.limit | inr }}</div>
+            <div class="text-body-secondary small mt-1">{{ preview.spent | money }} spent of {{ preview.limit | money }}</div>
             <div class="progress preview-bar mt-2" aria-hidden="true">
               <div class="progress-bar" [ngClass]="'bar-' + preview.status" [style.width.%]="preview.barPercent"></div>
             </div>
@@ -327,7 +327,7 @@
       <div class="py-4" [id]="ids.deleteDescription">
         <p class="d-flex align-items-center gap-2 min-w-0 mb-0" *ngIf="deletingCategory">
           <span class="category-dot" [style.background-color]="deletingCategory.color" aria-hidden="true"></span>
-          <span class="text-break">{{ deletingCategory.name }} · {{ deletingCategory.monthlyLimit | inr }} a month</span>
+          <span class="text-break">{{ deletingCategory.name }} · {{ deletingCategory.monthlyLimit | money }} a month</span>
         </p>
       </div>
 

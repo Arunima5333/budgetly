@@ -4,9 +4,11 @@ import { Subscription } from 'rxjs';
 
 import { Transaction, TransactionType } from '../../../core/models/transaction.model';
 import { AlertService } from '../../../core/services/alert.service';
+import { CurrencyService } from '../../../core/services/currency.service';
 import { DataService } from '../../../core/services/data.service';
 import { TodayService } from '../../../core/services/today.service';
-import { positiveAmount } from '../../../core/utils/validators';
+import { CurrencyCode, getCurrency, inputToInr, inrToInputValue } from '../../../core/utils/money';
+import { amountDecimalsIn, amountErrorText, positiveAmountIn } from '../../../core/utils/validators';
 
 // Provided globally by bootstrap.bundle.min.js (registered in angular.json).
 declare const bootstrap: any;
@@ -55,6 +57,11 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
   mode: 'add' | 'edit' = 'add';
   /** Id of the transaction being edited (edit mode only). */
   editingId: string | null = null;
+  /** Currency the amount field is typed in, fixed when the modal opens. */
+  formCurrency: CurrencyCode;
+  /** Edit mode: the value the amount field was prefilled with, and the stored rupees it came from. */
+  private prefilledAmount: number | null = null;
+  private originalAmount: number | null = null;
   submitted = false;
 
   private expenseCategories: CategoryOption[];
@@ -118,13 +125,14 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
   }
 
   constructor(private fb: FormBuilder, private dataService: DataService, private alertService: AlertService,
-              private today: TodayService) {
+              private today: TodayService, private currencyService: CurrencyService) {
+    this.formCurrency = this.currencyService.currency;
     this.expenseCategories = this.readExpenseCategories();
     this.incomeCategories = this.dataService.getIncomeCategories().map(c => ({ name: c.name, color: c.color }));
 
     this.form = this.fb.group({
       type: ['expense'],
-      amount: [null, [Validators.required, positiveAmount]],
+      amount: [null, [Validators.required, positiveAmountIn(() => this.formCurrency), amountDecimalsIn(() => this.formCurrency)]],
       category: [null, Validators.required],
       date: [this.today.todayIso(), [Validators.required, this.dateInRange]],
       note: ['']
@@ -134,6 +142,16 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
     this.typeSubscription = this.form.get('type').valueChanges.subscribe(() => {
       this.form.get('category').setValue(null);
     });
+  }
+
+  /** Prefix of the amount field, e.g. '$': the amount is typed in this currency and saved in rupees. */
+  get currencySymbol(): string {
+    return getCurrency(this.formCurrency).symbol;
+  }
+
+  /** 1 for whole-unit currencies (JPY), else 0.01. */
+  get amountStep(): string {
+    return getCurrency(this.formCurrency).decimals === 0 && this.formCurrency !== 'INR' ? '1' : '0.01';
   }
 
   get type(): TransactionType {
@@ -157,6 +175,11 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
 
   selectCategory(name: string) {
     this.form.get('category').setValue(name);
+  }
+
+  /** 'Enter an amount greater than 0.', or the decimals rule ('Use at most 2 decimal places.' / whole yen). */
+  get amountErrorText(): string {
+    return amountErrorText(this.form.get('amount'), 'amount') || '';
   }
 
   get amountInvalid(): boolean {
@@ -232,10 +255,13 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
     this.mode = 'edit';
     this.editingId = transaction.id;
     this.submitted = false;
+    this.formCurrency = this.currencyService.currency;
+    this.prefilledAmount = inrToInputValue(transaction.amount, this.formCurrency);
+    this.originalAmount = transaction.amount;
     // emitEvent: false so the type subscription doesn't clear the category being set here.
     this.form.reset({
       type: transaction.type,
-      amount: transaction.amount,
+      amount: this.prefilledAmount,
       category: transaction.category,
       date: transaction.date,
       // The description is the note, or the category name when no note was given.
@@ -277,7 +303,8 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
     const value = this.form.value;
     const input = {
       type: value.type as TransactionType,
-      amount: Number(value.amount),
+      // Typed in formCurrency, saved in rupees; an untouched edit keeps the stored rupees exactly.
+      amount: inputToInr(value.amount, this.formCurrency, this.prefilledAmount, this.originalAmount),
       category: value.category,
       date: value.date,
       note: value.note
@@ -322,6 +349,9 @@ export class AddTransactionModalComponent implements AfterViewInit, OnDestroy {
 
   private resetForm() {
     this.submitted = false;
+    this.formCurrency = this.currencyService.currency;
+    this.prefilledAmount = null;
+    this.originalAmount = null;
     this.form.reset({
       type: 'expense',
       amount: null,

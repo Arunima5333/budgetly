@@ -1,6 +1,6 @@
 import { Category } from '../models/category.model';
 import { Transaction } from '../models/transaction.model';
-import { computeMonthSummary } from './month-summary';
+import { adjustSummaryForCurrency, computeMonthSummary } from './month-summary';
 
 function txn(id: string, type: 'income' | 'expense', amount: number): Transaction {
   return { id, date: '2026-10-05', description: id, category: type === 'income' ? 'Salary' : 'Food', amount, type };
@@ -43,5 +43,27 @@ describe('computeMonthSummary', () => {
     expect(s.totalBudget).toBe(0);
     expect(s.spentRatio).toBe(0);
     expect(s.isOverBudget).toBe(false);
+  });
+});
+
+describe('adjustSummaryForCurrency', () => {
+  const LIMITS: Category[] = [{ name: 'Food', color: '#e0812f', monthlyLimit: 1000 }];
+
+  it('shows an overall overspend that displays as zero as exactly on budget', () => {
+    const summary = computeMonthSummary([txn('a', 'expense', 1000.25)], LIMITS);
+    expect(summary.isOverBudget).toBe(true);
+    ['USD', 'JPY', 'INR'].forEach((code: any) => {
+      const shown = adjustSummaryForCurrency(summary, code);
+      expect(shown.isOverBudget).toBe(false);
+      expect(shown.overBy).toBe(0);
+      expect(shown.left).toBe(0);
+    });
+    expect(summary.isOverBudget).toBe(true);
+  });
+
+  it('keeps a visible overspend', () => {
+    const summary = computeMonthSummary([txn('a', 'expense', 1100)], LIMITS);
+    expect(adjustSummaryForCurrency(summary, 'USD').isOverBudget).toBe(true);
+    expect(adjustSummaryForCurrency(summary, 'USD').overBy).toBe(100);
   });
 });

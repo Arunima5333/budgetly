@@ -40,13 +40,52 @@
       </ul>
     </nav>
 
-    <div class="mt-auto pt-3 border-top">
-      <div class="form-check form-switch mb-0 d-flex align-items-center gap-2 ps-0">
-        <i class="bi" [ngClass]="isDark ? 'bi-moon-stars' : 'bi-sun'" aria-hidden="true"></i>
-        <label class="form-check-label flex-grow-1" for="themeSwitch">Dark mode</label>
-        <input class="form-check-input ms-0" type="checkbox" role="switch" id="themeSwitch"
-               [checked]="isDark" (change)="toggleTheme()">
+    <!-- Footer. Desktop: Currency, divider, Dark mode. Below lg: divider, Currency (the top bar has the theme button). -->
+    <div class="mt-auto">
+      <div class="currency-block">
+        <div class="currency-row d-flex align-items-center gap-2">
+          <svg class="currency-icon sidebar-row-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="12" cy="7" rx="7" ry="3"></ellipse><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"></path></svg>
+          <span id="currencyLabel" class="currency-label flex-grow-1">Currency</span>
+          <!-- Dropdown styled exactly like the former small select. It opens upward and is positioned 'fixed'
+               (see ngAfterViewInit), so the sidebar/offcanvas scroll areas never clip it. Name: "Currency, $ USD". -->
+          <div #currencyDropdown class="dropup currency-dropdown">
+            <button #currencyToggle id="currencyToggle" type="button" class="form-select form-select-sm currency-select"
+                    data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="listbox"
+                    aria-labelledby="currencyLabel currencyToggle"
+                    [attr.aria-describedby]="isConverted ? 'currencyCaption' : null">{{ selectedOption.symbol }} {{ selectedOption.code }}</button>
+            <!-- A list of choices for screen readers (listbox/option/aria-selected) with the app's dropdown look;
+                 Bootstrap's arrow keys still move between the .dropdown-item buttons, Enter/Space pick. Options are
+                 tabindex="-1" (reached with the arrows, like listbox options), so Tab leaves and closes the list. -->
+            <ul #currencyMenu class="dropdown-menu dropdown-menu-end filter-menu currency-menu" role="listbox"
+                aria-labelledby="currencyLabel">
+              <li *ngFor="let option of currencies" role="presentation">
+                <button type="button" class="dropdown-item" role="option" tabindex="-1" [class.active]="option.code === currency"
+                        [attr.aria-selected]="option.code === currency ? 'true' : 'false'"
+                        (click)="pickCurrency(option.code)">{{ option.symbol }} {{ option.code }}</button>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <!-- Only for converted currencies; it is then also the toggle's description (aria-describedby). -->
+        <p class="currency-caption mb-0" id="currencyCaption" *ngIf="isConverted">Approximate exchange rates</p>
+      </div>
+
+      <div class="d-none d-lg-block pt-3 border-top">
+        <div class="form-check form-switch mb-0 d-flex align-items-center gap-2 ps-0">
+          <i class="bi sidebar-row-icon" [ngClass]="isDark ? 'bi-moon-stars' : 'bi-sun'" aria-hidden="true"></i>
+          <label class="form-check-label flex-grow-1" for="themeSwitch">Dark mode</label>
+          <input class="form-check-input ms-0" type="checkbox" role="switch" id="themeSwitch"
+                 [checked]="isDark" (change)="toggleTheme()">
+        </div>
       </div>
     </div>
+
+    <!-- Announces a currency change made while the phone menu is open as a modal (content outside a modal
+         dialog may be ignored by screen readers). Unused on desktop, where the outer region below speaks. -->
+    <div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{{ menuAnnouncement }}</div>
   </div>
 </aside>
+
+<!-- Polite announcement of a user's currency change (desktop, or whenever the menu isn't open). Outside the
+     offcanvas so it is never hidden (visibility or display) at any breakpoint. -->
+<div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{{ currencyAnnouncement }}</div>

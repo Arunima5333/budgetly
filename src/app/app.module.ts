@@ -15,7 +15,7 @@ import { EmptyStateComponent } from './shared/components/empty-state/empty-state
 import { AppAlertComponent } from './shared/components/app-alert/app-alert.component';
 import { AddTransactionModalComponent } from './shared/components/add-transaction-modal/add-transaction-modal.component';
 import { DeleteTransactionModalComponent } from './shared/components/delete-transaction-modal/delete-transaction-modal.component';
-import { InrPipe } from './shared/pipes/inr.pipe';
+import { MoneyPipe } from './shared/pipes/money.pipe';
 
 @NgModule({
   declarations: [
@@ -25,7 +25,7 @@ import { InrPipe } from './shared/pipes/inr.pipe';
     TransactionsComponent,
     BudgetsComponent,
     ReportsComponent,
-    InrPipe,
+    MoneyPipe,
     AddTransactionModalComponent,
     DeleteTransactionModalComponent,
     AppAlertComponent,

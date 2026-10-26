@@ -79,6 +79,72 @@
   float: none;
 }
 
+/* Currency row (+ caption), pinned to the bottom of the menu below lg with the divider above it. */
+.currency-block {
+  padding-top: 1rem;
+  border-top: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color);
+}
+
+/* The 20px coin takes the 16px box of the Dark mode row's sun icon (2px overhang each side), so both icons share
+   a centre line and "Currency" starts exactly where "Dark mode" does. */
+.currency-icon {
+  flex-shrink: 0;
+  margin: -2px;
+}
+
+/* Both footer icons (coins, sun/moon) in the same muted grey; the labels stay body colour. */
+.sidebar-row-icon {
+  color: var(--bs-secondary-color);
+}
+
+/* Under the row, starting at the "Currency" label: icon box (16px) + the row gap (0.5rem). Hidden for INR.
+   One line: "Approximate exchange rates" fits beside the label in the 260px desktop sidebar. */
+.currency-caption {
+  margin-top: 2px;
+  padding-left: calc(16px + 0.5rem);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+}
+
+/* Label-like name for the currency toggle (aria-labelledby); renders like the former <label>. */
+.currency-label {
+  display: inline-block;
+}
+
+.currency-dropdown {
+  flex-shrink: 0;
+}
+
+/* The toggle reuses .form-select.form-select-sm (size, padding, font, radius, border, chevron, surface bg).
+   Fixed width that fits the longest option ("€ EUR", ~87.6px at 16px root), the same for every currency and
+   scaling with the root font size; ellipsis only as a safety net. */
+.currency-select {
+  width: 5.5rem;
+  flex-shrink: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Like other buttons: the focus ring and focus border only for keyboard focus (:focus-visible), not after a mouse
+   or touch click. (.form-select:focus draws them on any focus; real selects/inputs elsewhere keep that.) */
+.currency-select:focus:not(:focus-visible) {
+  border-color: var(--bs-border-color);
+  outline: 0;
+  box-shadow: none;
+}
+
+/* The list (app dropdown look via .filter-menu): at least as wide as the toggle (.filter-menu's min-width: 100%
+   would measure the viewport once the menu is position: fixed), never taller than the viewport. */
+.currency-menu {
+  min-width: 5.5rem;
+  max-height: calc(100vh - 1rem);
+  overflow-y: auto;
+}
+
 /* Desktop: fixed-width column that stays in view while the page scrolls. */
 @media (min-width: 992px) {
   /* Bootstrap forces .offcanvas-lg transparent at lg, so the host paints the surface. */
@@ -95,6 +161,13 @@
     display: flex;
     flex-direction: column;
     padding: 1.25rem 1rem;
+  }
+
+  /* From lg the divider sits between Currency and Dark mode instead, the same 1rem from each. */
+  .currency-block {
+    padding-top: 0;
+    padding-bottom: 1rem;
+    border-top: 0;
   }
 
   /* Bootstrap hides the offcanvas header and zeroes body layout at lg; restore them. */

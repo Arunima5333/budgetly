@@ -1,6 +1,7 @@
 import { BudgetStatus, CategoryBudget } from '../models/category-budget.model';
 import { Category } from '../models/category.model';
 import { Transaction } from '../models/transaction.model';
+import { CurrencyCode, displaysAsZero } from './money';
 
 /** Ratio from which a category counts as "Close to limit". */
 export const CLOSE_TO_LIMIT_RATIO = 0.85;
@@ -73,4 +74,17 @@ export function toCategoryBudget(category: Category, spentPaise: number): Catego
     status,
     overBy: status === 'over' ? (spent - limit) / 100 : 0
   };
+}
+
+/**
+ * Display-level adjustment for the selected currency: an overspend that shows as zero there (e.g. ₹0.40 is
+ * '$0.00' / '¥0' / '₹0') reads "At limit" instead of "Over by $0.00", with a full bar, 100% used and nothing over
+ * (so the bottom line is "… left", and Needs attention groups it with at-limit). Stored data and the rupee
+ * status used elsewhere are untouched; anything else is returned as is.
+ */
+export function adjustStatusForCurrency(budget: CategoryBudget, code: CurrencyCode): CategoryBudget {
+  if (budget.status !== 'over' || !displaysAsZero(budget.overBy, code)) {
+    return budget;
+  }
+  return { ...budget, status: 'at-limit', overBy: 0, percentUsed: 100, barPercent: 100 };
 }

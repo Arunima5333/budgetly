@@ -1,13 +1,14 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { BehaviorSubject, combineLatest, Subscription } from 'rxjs';
 
+import { CurrencyService } from '../../core/services/currency.service';
 import { DataService } from '../../core/services/data.service';
 import { TodayService } from '../../core/services/today.service';
 import { formatMonthYear } from '../../core/utils/date-format';
 import { monthIndex } from '../../core/utils/month-range';
 import { computeInsights, Insight } from '../../core/utils/insights';
 import { roundPercentages } from '../../core/utils/percentages';
-import { formatInr } from '../../shared/pipes/inr.pipe';
+import { formatMoney } from '../../core/utils/money';
 import {
   BAR_LABEL_PADDING,
   BarChartColors,
@@ -144,7 +145,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   constructor(private dataService: DataService, private host: ElementRef, private cdr: ChangeDetectorRef,
-              private today: TodayService) { }
+              private today: TodayService, private currencyService: CurrencyService) { }
 
   /** Current month with no transactions yet: only the empty-state card (no range selector or charts). */
   get isCurrentEmpty(): boolean {
@@ -193,11 +194,12 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     return 'Spending by category: ' + this.slices.map(s => s.name + ' ' + s.percentLabel).join(', ');
   }
 
-  /** Text equivalent of the bar chart, e.g. 'Monthly spending, last 6 months: May ₹38,200, …, October ₹44,600 (selected)'. */
+  /** Text equivalent of the bar chart, e.g. 'Monthly spending, last 6 months: May $38,200, …, October $44,600 (selected)'. */
   get monthlyAriaLabel(): string {
+    const currency = this.currencyService.currency;
     return 'Monthly spending, last ' + this.monthBars.length + ' months: ' +
       this.monthBars
-        .map(b => b.longName + ' ' + (b.hasData ? formatInr(b.total) : 'no data') + (b.selected ? ' (selected)' : ''))
+        .map(b => b.longName + ' ' + (b.hasData ? formatMoney(b.total, currency) : 'no data') + (b.selected ? ' (selected)' : ''))
         .join(', ');
   }
 
@@ -207,8 +209,9 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       this.isMobile = this.mobileQuery.matches;
     }
 
-    // Spending and categories change with the month and with added/edited transactions or categories.
-    this.subscription.add(combineLatest(this.dataService.selectedMonth$, this.dataService.dataChanged$)
+    // Spending and categories change with the month and with added/edited transactions or categories;
+    // the currency only changes how amounts read (insights text, doughnut tooltip).
+    this.subscription.add(combineLatest(this.dataService.selectedMonth$, this.dataService.dataChanged$, this.currencyService.currency$)
       .subscribe(([selected]) => {
         this.monthLabel = formatMonthYear(selected.year, selected.month);
         this.isPastMonth = !this.today.isCurrentMonth(selected);
@@ -236,12 +239,14 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
           this.dataService.getCategoryBudgets(selected.year, selected.month),
           this.dataService.getCategoryBudgets(previous.getFullYear(), previous.getMonth() + 1),
           this.dataService.getMonthSummary(selected.year, selected.month),
-          previous.toLocaleDateString('en-US', { month: 'long' })
+          previous.toLocaleDateString('en-US', { month: 'long' }),
+          this.currencyService.currency
         );
       }));
 
-    // Monthly totals also depend on the compare range.
-    this.subscription.add(combineLatest(this.dataService.selectedMonth$, this.dataService.dataChanged$, this.compareSubject)
+    // Monthly totals also depend on the compare range; a currency change redraws the bar labels.
+    this.subscription.add(combineLatest(this.dataService.selectedMonth$, this.dataService.dataChanged$, this.compareSubject,
+      this.currencyService.currency$)
       .subscribe(([selected, , count]) => {
         const totals = this.dataService.getMonthlyExpenseTotals(selected.year, selected.month, count);
         this.monthBars = totals.map((t, i) => {
@@ -401,7 +406,8 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
             title: () => '',
             label: (item: any) => {
               const slice = this.slices[item.index];
-              return slice ? slice.name + ': ' + formatInr(slice.spent) + ' (' + slice.percentLabel + ')' : '';
+              const amount = slice ? formatMoney(slice.spent, this.currencyService.currency) : '';
+              return slice ? slice.name + ': ' + amount + ' (' + slice.percentLabel + ')' : '';
             }
           }
         }
@@ -433,7 +439,8 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       // Baseline, amount labels, month labels and dashed "No data" bars (dataset.noData);
       // colours read at draw time so theme changes apply.
-      plugins: [monthlyLabelsPlugin(() => this.barColors || readBarChartColors(), APP_FONT, () => this.isMobile)]
+      plugins: [monthlyLabelsPlugin(() => this.barColors || readBarChartColors(), APP_FONT, () => this.isMobile,
+        () => this.currencyService.currency)]
     });
     this.updateBarChart();
   }
