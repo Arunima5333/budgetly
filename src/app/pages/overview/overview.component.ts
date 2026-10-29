@@ -89,8 +89,9 @@ export class OverviewComponent {
 
     // Overspends that show as zero in the selected currency read as at limit / on budget (display only).
     this.summary$ = combineLatest(monthData$, this.currencyService.currency$).pipe(
-      map(([selected, currency]) => adjustSummaryForCurrency(
-        this.toSummaryView(this.dataService.getMonthSummary(selected.year, selected.month)), currency))
+      // Adjusted first, so the bar/percentage follow the displayed totals (equal totals read 100%).
+      map(([selected, currency]) => this.toSummaryView(
+        adjustSummaryForCurrency(this.dataService.getMonthSummary(selected.year, selected.month), currency)))
     );
     this.categoryBudgets$ = combineLatest(monthData$, this.currencyService.currency$).pipe(
       map(([selected, currency]) => this.dataService.getCategoryBudgets(selected.year, selected.month)

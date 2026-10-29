@@ -10,7 +10,7 @@ import { CurrencyService } from '../../core/services/currency.service';
 import { CATEGORY_NAME_MAX_LENGTH, DataService } from '../../core/services/data.service';
 import { TodayService } from '../../core/services/today.service';
 import { budgetHint, BudgetHint } from '../../core/utils/budget-hint';
-import { adjustStatusForCurrency, needsAttention, toCategoryBudget } from '../../core/utils/category-budgets';
+import { adjustStatusForCurrency, displayedLeft, needsAttention, toCategoryBudget } from '../../core/utils/category-budgets';
 import { formatMonthYear } from '../../core/utils/date-format';
 import { CurrencyCode, getCurrency, inputToInr, inrToInputValue } from '../../core/utils/money';
 import { amountDecimalsIn, amountErrorText, positiveAmountIn } from '../../core/utils/validators';
@@ -396,9 +396,9 @@ export class BudgetsComponent implements AfterViewInit, OnDestroy {
     return category.name;
   }
 
-  /** Rupees left in the budget (0 when at or over the limit; over budget uses budget.overBy). */
+  /** "… left": the displayed limit minus the displayed spending, so the card's numbers agree (0 when at or over). */
   leftAmount(budget: CategoryBudget): number {
-    return Math.max(0, Math.round((budget.limit - budget.spent) * 100) / 100);
+    return displayedLeft(budget, this.currencyService.currency);
   }
 
   /** Card pencil (desktop grid and mobile list): opens the modal in edit mode for this category. */

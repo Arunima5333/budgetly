@@ -119,6 +119,23 @@ export function formatMoney(inr: number, code: CurrencyCode): string {
   return (inr < 0 && amount > 0 ? '-' : '') + currency.symbol + groupDigits(amount, currency.locale, currency.decimals);
 }
 
+/**
+ * Rupees as displayed in the currency, in its smallest displayed unit (cents for USD/EUR/GBP, whole yen/rupees):
+ * an integer, rounded exactly as formatMoney rounds. Compare these to decide what the screen shows.
+ */
+export function displayedUnits(inr: number, code: CurrencyCode): number {
+  const currency = getCurrency(code);
+  const factor = Math.pow(10, currency.decimals);
+  const sign = inr < 0 ? -1 : 1;
+  return sign * Math.round(roundTo(Math.abs(fromInr(inr, code)), currency.decimals) * factor);
+}
+
+/** The rupee amount that formatMoney shows as exactly these displayed units (for differences of displayed amounts). */
+export function inrFromDisplayedUnits(units: number, code: CurrencyCode): number {
+  const currency = getCurrency(code);
+  return units / Math.pow(10, currency.decimals) * rateOf(code);
+}
+
 /** True when the rupees show as zero in the currency after rounding to its decimals ($0.00, ¥0, ₹0). */
 export function displaysAsZero(inr: number, code: CurrencyCode): boolean {
   return typeof inr === 'number' && isFinite(inr) && roundTo(Math.abs(fromInr(inr, code)), getCurrency(code).decimals) === 0;

@@ -1,7 +1,7 @@
 import { BudgetStatus, CategoryBudget } from '../models/category-budget.model';
 import { Category } from '../models/category.model';
 import { Transaction } from '../models/transaction.model';
-import { CurrencyCode, displaysAsZero } from './money';
+import { CurrencyCode, displayedUnits, inrFromDisplayedUnits } from './money';
 
 /** Ratio from which a category counts as "Close to limit". */
 export const CLOSE_TO_LIMIT_RATIO = 0.85;
@@ -77,14 +77,28 @@ export function toCategoryBudget(category: Category, spentPaise: number): Catego
 }
 
 /**
- * Display-level adjustment for the selected currency: an overspend that shows as zero there (e.g. ₹0.40 is
- * '$0.00' / '¥0' / '₹0') reads "At limit" instead of "Over by $0.00", with a full bar, 100% used and nothing over
- * (so the bottom line is "… left", and Needs attention groups it with at-limit). Stored data and the rupee
- * status used elsewhere are untouched; anything else is returned as is.
+ * Display-level status for the selected currency, decided from the amounts AS DISPLAYED (each rounded to the
+ * currency's decimals), so a card's numbers always agree with its badge:
+ * - displayed spent > displayed limit: "Over by" the displayed difference ("$11.37 spent of $11.36" -> over by $0.01);
+ * - displayed spent = displayed limit: "At limit" ("¥2,129 spent of ¥2,129"), nothing over;
+ * - otherwise the rupee status (on track / close) stands.
+ * overBy is returned in rupees that format as exactly the displayed difference. "At limit" always reads 100% with a
+ * full bar (e.g. ₹9,999.60 of ₹10,000 shows ₹10,000 of ₹10,000); other percentages are left as they are.
+ * Stored data is untouched.
  */
 export function adjustStatusForCurrency(budget: CategoryBudget, code: CurrencyCode): CategoryBudget {
-  if (budget.status !== 'over' || !displaysAsZero(budget.overBy, code)) {
-    return budget;
+  const spent = displayedUnits(budget.spent, code);
+  const limit = displayedUnits(budget.limit, code);
+  if (spent > limit) {
+    return { ...budget, status: 'over', overBy: inrFromDisplayedUnits(spent - limit, code) };
   }
-  return { ...budget, status: 'at-limit', overBy: 0, percentUsed: 100, barPercent: 100 };
+  if (spent === limit && (limit > 0 || budget.status === 'over')) {
+    return { ...budget, status: 'at-limit', overBy: 0, percentUsed: 100, barPercent: 100 };
+  }
+  return budget;
+}
+
+/** "… left" on a card: the displayed limit minus the displayed spending (0 when at or over), in rupees. */
+export function displayedLeft(budget: CategoryBudget, code: CurrencyCode): number {
+  return inrFromDisplayedUnits(Math.max(0, displayedUnits(budget.limit, code) - displayedUnits(budget.spent, code)), code);
 }

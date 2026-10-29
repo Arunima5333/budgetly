@@ -1,5 +1,6 @@
 import { Category } from '../models/category.model';
 import { Transaction } from '../models/transaction.model';
+import { formatMoney } from './money';
 import { adjustSummaryForCurrency, computeMonthSummary } from './month-summary';
 
 function txn(id: string, type: 'income' | 'expense', amount: number): Transaction {
@@ -46,24 +47,52 @@ describe('computeMonthSummary', () => {
   });
 });
 
-describe('adjustSummaryForCurrency', () => {
+describe('adjustSummaryForCurrency (from the displayed totals)', () => {
   const LIMITS: Category[] = [{ name: 'Food', color: '#e0812f', monthlyLimit: 1000 }];
 
-  it('shows an overall overspend that displays as zero as exactly on budget', () => {
-    const summary = computeMonthSummary([txn('a', 'expense', 1000.25)], LIMITS);
+  it('is on budget when the displayed totals are equal, though rupees are over', () => {
+    // ₹1,000.10 of ₹1,000: $11.36 / €9.80 / ₹1,000 / ¥1,724 on both sides.
+    const summary = computeMonthSummary([txn('a', 'expense', 1000.1)], LIMITS);
     expect(summary.isOverBudget).toBe(true);
-    ['USD', 'JPY', 'INR'].forEach((code: any) => {
+    ['USD', 'INR', 'EUR', 'JPY'].forEach((code: any) => {
       const shown = adjustSummaryForCurrency(summary, code);
       expect(shown.isOverBudget).toBe(false);
       expect(shown.overBy).toBe(0);
       expect(shown.left).toBe(0);
+      expect(shown.spentRatio).toBe(1);
     });
     expect(summary.isOverBudget).toBe(true);
   });
 
-  it('keeps a visible overspend', () => {
-    const summary = computeMonthSummary([txn('a', 'expense', 1100)], LIMITS);
-    expect(adjustSummaryForCurrency(summary, 'USD').isOverBudget).toBe(true);
-    expect(adjustSummaryForCurrency(summary, 'USD').overBy).toBe(100);
+  it('reads exactly 100% when displayed totals are equal though rupees are just under (₹999.60 of ₹1,000)', () => {
+    const summary = computeMonthSummary([txn('a', 'expense', 999.6)], LIMITS);
+    expect(summary.spentRatio).toBeLessThan(1);
+    const inr = adjustSummaryForCurrency(summary, 'INR');
+    expect(inr.isOverBudget).toBe(false);
+    expect(inr.spentRatio).toBe(1);
+    expect(formatMoney(inr.left, 'INR')).toBe('₹0');
+    // Totals that display differently keep the rupee ratio.
+    const half = adjustSummaryForCurrency(computeMonthSummary([txn('a', 'expense', 500)], LIMITS), 'USD');
+    expect(half.spentRatio).toBe(0.5);
+  });
+
+  it('is over by the displayed difference when the displayed spending is higher', () => {
+    // ₹1,000.25 is ¥1,725 against a ¥1,724 budget.
+    const jpy = adjustSummaryForCurrency(computeMonthSummary([txn('a', 'expense', 1000.25)], LIMITS), 'JPY');
+    expect(jpy.isOverBudget).toBe(true);
+    expect(formatMoney(jpy.overBy, 'JPY')).toBe('¥1');
+    // $12.50 spent of $11.36.
+    const usd = adjustSummaryForCurrency(computeMonthSummary([txn('a', 'expense', 1100)], LIMITS), 'USD');
+    expect(usd.isOverBudget).toBe(true);
+    expect(formatMoney(usd.overBy, 'USD')).toBe('$1.14');
+  });
+
+  it('gives the left amount as the displayed budget minus the displayed spending', () => {
+    // $11.36 budget - $5.69 spent (₹500.40) = $5.67.
+    const usd = adjustSummaryForCurrency(computeMonthSummary([txn('a', 'expense', 500.4)], LIMITS), 'USD');
+    expect(usd.isOverBudget).toBe(false);
+    expect(formatMoney(usd.left, 'USD')).toBe('$5.67');
+    const inr = adjustSummaryForCurrency(computeMonthSummary([txn('a', 'expense', 500.4)], LIMITS), 'INR');
+    expect(formatMoney(inr.left, 'INR')).toBe('₹500');
   });
 });

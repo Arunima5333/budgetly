@@ -1,8 +1,10 @@
 import { CategoryBudget } from '../models/category-budget.model';
 import { Category } from '../models/category.model';
 import { Transaction } from '../models/transaction.model';
-import { adjustStatusForCurrency, budgetStatus, computeCategoryBudgets, needsAttention, toCategoryBudget } from './category-budgets';
-import { CurrencyCode } from './money';
+import {
+  adjustStatusForCurrency, budgetStatus, computeCategoryBudgets, displayedLeft, needsAttention, toCategoryBudget
+} from './category-budgets';
+import { CurrencyCode, formatMoney } from './money';
 
 const FOOD: Category = { name: 'Food', color: '#e0812f', monthlyLimit: 100 };
 
@@ -86,13 +88,14 @@ describe('needsAttention', () => {
   });
 });
 
-describe('adjustStatusForCurrency', () => {
+describe('adjustStatusForCurrency (status from the displayed amounts)', () => {
   const RENT: Category = { name: 'Rent', color: '#5b6cf0', monthlyLimit: 10000 };
   const overBy = (paise: number) => toCategoryBudget(RENT, 1000000 + paise);
+  const shownOver = (b: CategoryBudget, code: CurrencyCode) => formatMoney(b.overBy, code);
 
-  it('shows an overspend that displays as zero as At limit (₹0.01 everywhere, ₹0.40 in USD/INR, ₹0.25 in JPY)', () => {
+  it('reads At limit when the displayed spent and limit are equal (₹0.01 over everywhere, ₹0.40 in USD/INR/EUR)', () => {
     const cases: [number, CurrencyCode][] = [
-      [1, 'USD'], [1, 'JPY'], [1, 'INR'], [1, 'EUR'], [1, 'GBP'], [40, 'USD'], [40, 'INR'], [25, 'JPY']
+      [1, 'USD'], [1, 'JPY'], [1, 'INR'], [1, 'EUR'], [1, 'GBP'], [40, 'USD'], [40, 'INR'], [40, 'EUR']
     ];
     cases.forEach(([paise, code]) => {
       const shown = adjustStatusForCurrency(overBy(paise), code);
@@ -100,19 +103,67 @@ describe('adjustStatusForCurrency', () => {
       expect(shown.overBy).toBe(0);
       expect(shown.percentUsed).toBe(100);
       expect(shown.barPercent).toBe(100);
+      expect(formatMoney(displayedLeft(shown, code), code)).toBe(formatMoney(0, code));
     });
   });
 
-  it('keeps Over when the overspend displays as non-zero', () => {
-    // ₹0.40 is ¥0.69, which shows as '¥1'.
-    expect(adjustStatusForCurrency(overBy(40), 'JPY').status).toBe('over');
-    // ₹0.50 is '₹1' in INR (whole rupees) and '$0.01' in USD, but '¥1' too (0.5 / 0.58 = 0.86 -> ¥1).
-    expect(adjustStatusForCurrency(overBy(50), 'INR').status).toBe('over');
-    expect(adjustStatusForCurrency(overBy(50), 'USD').status).toBe('over');
-    expect(adjustStatusForCurrency(overBy(50), 'JPY').status).toBe('over');
+  it('reads Over by the displayed difference when the displayed spent is higher', () => {
+    // ₹10,000.40 is ¥17,242 against a ¥17,241 limit.
+    const jpy = adjustStatusForCurrency(overBy(40), 'JPY');
+    expect(jpy.status).toBe('over');
+    expect(shownOver(jpy, 'JPY')).toBe('¥1');
+    // ₹1,000.56 of ₹1,000 is $11.37 of $11.36: over by $0.01.
+    const usd = adjustStatusForCurrency(toCategoryBudget({ name: 'Food', color: '#000000', monthlyLimit: 1000 }, 100056), 'USD');
+    expect(formatMoney(usd.spent, 'USD') + ' of ' + formatMoney(usd.limit, 'USD')).toBe('$11.37 of $11.36');
+    expect(usd.status).toBe('over');
+    expect(shownOver(usd, 'USD')).toBe('$0.01');
+    // EUR: ₹1,234.76 spent of ₹1,234.40 is €12.11 of €12.10 -> Over by €0.01, not At limit.
+    const eur = adjustStatusForCurrency(toCategoryBudget({ name: 'Bills', color: '#000000', monthlyLimit: 1234.4 }, 123476), 'EUR');
+    expect(formatMoney(eur.spent, 'EUR') + ' of ' + formatMoney(eur.limit, 'EUR')).toBe('€12.11 of €12.10');
+    expect(eur.status).toBe('over');
+    expect(shownOver(eur, 'EUR')).toBe('€0.01');
+    // ₹11,500 of ₹10,000 is $130.68 of $113.64: over by $17.04.
     const big = adjustStatusForCurrency(overBy(150000), 'USD');
     expect(big.status).toBe('over');
-    expect(big.overBy).toBe(1500);
+    expect(shownOver(big, 'USD')).toBe('$17.04');
+  });
+
+  it('reads At limit in JPY when ¥2,129 is spent of ¥2,129, though rupees are over', () => {
+    // ₹1,235.10 spent of ₹1,234.90: ¥2,129.48 and ¥2,129.14, both shown as ¥2,129.
+    const b = toCategoryBudget({ name: 'Health', color: '#000000', monthlyLimit: 1234.9 }, 123510);
+    expect(b.status).toBe('over');
+    const jpy = adjustStatusForCurrency(b, 'JPY');
+    expect(formatMoney(jpy.spent, 'JPY') + ' of ' + formatMoney(jpy.limit, 'JPY')).toBe('¥2,129 of ¥2,129');
+    expect(jpy.status).toBe('at-limit');
+    expect(jpy.overBy).toBe(0);
+  });
+
+  it('reads At limit when the displayed amounts are equal though rupees are just under (₹9,999.60 of ₹10,000)', () => {
+    const b = toCategoryBudget(RENT, 999960);
+    expect(b.status).toBe('close');
+    expect(adjustStatusForCurrency(b, 'INR').status).toBe('at-limit');
+    expect(b.percentUsed).toBe(99);
+    expect(adjustStatusForCurrency(b, 'INR').percentUsed).toBe(100);
+    expect(adjustStatusForCurrency(b, 'INR').barPercent).toBe(100);
+    ['EUR', 'GBP', 'JPY'].forEach((code: any) => {
+      const shown = adjustStatusForCurrency(b, code);
+      expect(formatMoney(shown.spent, code)).toBe(formatMoney(shown.limit, code));
+      expect(shown.status).toBe('at-limit');
+      expect(shown.percentUsed).toBe(100);
+      expect(shown.barPercent).toBe(100);
+    });
+    // In USD they differ ($113.63 of $113.64), so the rupee status stands.
+    expect(adjustStatusForCurrency(b, 'USD').status).toBe('close');
+    expect(adjustStatusForCurrency(b, 'USD').percentUsed).toBe(99);
+    expect(adjustStatusForCurrency(b, 'USD').barPercent).toBe(99);
+  });
+
+  it('gives the left amount as the displayed limit minus the displayed spending', () => {
+    // ₹1,000 limit, ₹500.40 spent: $11.36 - $5.69 = $5.67 (rupee-based would be $5.68).
+    const b = adjustStatusForCurrency(toCategoryBudget({ name: 'Food', color: '#000000', monthlyLimit: 1000 }, 50040), 'USD');
+    expect(formatMoney(b.spent, 'USD')).toBe('$5.69');
+    expect(formatMoney(displayedLeft(b, 'USD'), 'USD')).toBe('$5.67');
+    expect(formatMoney(displayedLeft(overBy(150000), 'USD'), 'USD')).toBe('$0.00');
   });
 
   it('leaves other statuses and the stored budget untouched', () => {

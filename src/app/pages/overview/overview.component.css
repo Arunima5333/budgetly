@@ -17,11 +17,33 @@
   font-size: 0.875rem;
 }
 
+/* Amounts never break (nor "Over by" from its amount): one line, a little smaller where the cards are narrow.
+   Below md the cards are half the screen; md has three cards across; from lg the 260px sidebar takes its share.
+   Each step stays at 1.75rem once there's room (e.g. from ~1280px with the sidebar). */
 .summary-value {
   font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.2;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .summary-value {
+    font-size: clamp(1.0625rem, 4.4vw + 0.2rem, 1.75rem);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .summary-value {
+    font-size: clamp(1.25rem, 2.6vw, 1.75rem);
+  }
+}
+
+/* From lg each card's text box is about (100vw - 512px) / 3 wide; "Over by ₹1,00,107" needs ~8.9em. */
+@media (min-width: 992px) {
+  .summary-value {
+    font-size: clamp(1rem, calc(3.75vw - 19.5px), 1.75rem);
+  }
 }
 
 /* Accent text: #4338CA in light mode, the lighter tint in dark mode (see styles.css). */
